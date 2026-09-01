@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Forktown
 
-## Getting Started
+**Where agents rehearse before they ship.**
 
-First, run the development server:
+Living simulations of **real** codebases. Connect a GitHub repo → Fingerprint billing/auth/migration surfaces → Found a town → Agents rehearse dangerous migrations against subjective buyers and operators.
+
+This is a product surface with durable storage, agent API keys, and a CLI — not a canned Acme demo.
+
+## Quick start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+pnpm rebuild better-sqlite3   # once
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. Open [http://localhost:3000/connect](http://localhost:3000/connect)
+2. Paste a **public** GitHub URL, or scan a **local path** on this machine
+3. Open the founded town → repo-aware one-click rehearsal or custom wizard
+4. Dashboard at [/dashboard](http://localhost:3000/dashboard) · keys at [/settings/keys](http://localhost:3000/settings/keys)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Agent API (`/api/v1`)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+export FORKTOWN_API_KEY=ft_live_…
+export FORKTOWN_URL=http://localhost:3000
 
-## Learn More
+# Ingest GitHub repo → town
+pnpm forktown connect https://github.com/org/repo
 
-To learn more about Next.js, take a look at the following resources:
+# Ingest local checkout (Forktown server must read the path)
+pnpm forktown connect-local /path/to/repo
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Re-fingerprint after code changes
+pnpm forktown resync <townId>
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# List towns
+pnpm forktown towns
 
-## Deploy on Vercel
+# Rehearse (playbooks auto-detected from fingerprint in UI)
+pnpm forktown rehearse <townId> --kind billing --intensity 3
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Fetch report JSON or markdown
+pnpm forktown run <runId>
+pnpm forktown report <runId> --markdown
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Health
+pnpm forktown health
+```
+
+### HTTP
+
+```
+GET/POST  /api/v1/towns
+POST      /api/v1/towns/from-local
+POST      /api/v1/towns/:id/rehearse
+GET       /api/v1/runs/:id
+POST      /api/towns/:id/resync
+GET       /api/runs/:id/export   (markdown)
+GET       /api/health
+```
+
+Auth: `Authorization: Bearer ft_live_…`
+
+## Persistence
+
+SQLite at `.data/forktown.sqlite` (WAL). Towns, plans, runs, and API key hashes (SHA-256) live here. Bootstrap key (if minted) is also written to `.data/bootstrap-api-key.txt`.
+
+## Engine
+
+- **GitHub + local ingest** — real tree / filesystem fingerprint
+- **Migration playbooks** — title, hypothesis, intensity from repo signals
+- **Subjective minds** — prospect theory, affect, memory, negotiation
+- **Phased rehearsal** — prepare → canary → cutover → stress → recovery
+- **Adaptive counters** — kill-switch, contagion, district cascades
+- **War room + export** — trust sparkline, cast, hypothesis verdict, markdown
+- **`pnpm test:sim`** — deterministic self-test
+
+## Env
+
+| Var | Purpose |
+|-----|---------|
+| `GITHUB_TOKEN` | Private repos / higher GitHub rate limits |
+| `FORKTOWN_DB_PATH` | Override SQLite path |
+| `FORKTOWN_API_KEY` | CLI auth |
+| `FORKTOWN_URL` | CLI base URL |
