@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "installCommand": "pnpm install",
+  "installCommand": "pnpm install && pnpm rebuild better-sqlite3",
   "buildCommand": "pnpm build",
   "regions": ["iad1"]
 }

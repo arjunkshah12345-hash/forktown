@@ -26,7 +26,7 @@ Forktown’s edge: **theater vs world** — issue→PR→tests is the shallow pa
 
 ## RECOMMENDED — Tweet 1 (hook, standalone)
 
-Attach: `public/launch/og.png`
+Attach: `public/launch/og.jpg`
 
 ```
 Your migration passed CI.
@@ -221,7 +221,7 @@ YOUR_URL
 | **Record (you)** | 15–30s screen capture | Connect → town → rehearse → war room (best performer) |
 | **Record (you)** | 10s GIF | `/sample` rehearse + combo banner |
 
-Metadata wired in `src/app/layout.tsx` → `/launch/og.png` for Twitter cards once deployed.
+Metadata wired in `src/app/layout.tsx` → `/launch/og.jpg` for Twitter cards once deployed (PNG twins in `public/launch/` for attachments).
 
 ---
 
