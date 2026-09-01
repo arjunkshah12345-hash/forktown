@@ -81,10 +81,18 @@ export async function ensureBootstrapKey(): Promise<string | null> {
     .get();
   if (existing) return null;
   const created = await createApiKey("default-agent");
-  // Persist once to a local file for CLI bootstrap (gitignored .data)
+  // Persist once for CLI bootstrap (local .data or /tmp on Vercel)
   const fs = await import("fs");
   const path = await import("path");
-  const p = path.join(process.cwd(), ".data", "bootstrap-api-key.txt");
-  fs.writeFileSync(p, `${created.key}\n`, "utf8");
+  const dataDir =
+    process.env.FORKTOWN_DATA_DIR ??
+    (process.env.VERCEL ? path.join("/tmp", "forktown-data") : path.join(process.cwd(), ".data"));
+  fs.mkdirSync(dataDir, { recursive: true });
+  const p = path.join(dataDir, "bootstrap-api-key.txt");
+  try {
+    fs.writeFileSync(p, `${created.key}\n`, "utf8");
+  } catch {
+    /* ephemeral FS may be read-only outside /tmp — key still returned via createApiKey callers */
+  }
   return created.key;
 }
