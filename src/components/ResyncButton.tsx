@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { withBase } from "@/lib/paths";
 
 export function ResyncButton({ townId }: { townId: string }) {
   const router = useRouter();
@@ -12,7 +13,7 @@ export function ResyncButton({ townId }: { townId: string }) {
     setBusy(true);
     setMsg(null);
     try {
-      const res = await fetch(`/api/towns/${townId}/resync`, { method: "POST" });
+      const res = await fetch(withBase(`/api/towns/${townId}/resync`), { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Resync failed");
       setMsg(`Resynced · ${data.fingerprint?.filesSampled ?? "?"} files`);

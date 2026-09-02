@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { MigrationKind } from "@/lib/sim/types";
 import type { MigrationPlaybook } from "@/lib/github/playbook";
+import { withBase } from "@/lib/paths";
 
 const KINDS = [
   { id: "billing", label: "Billing migration", hint: "Checkout → custom invoices" },
@@ -51,7 +52,7 @@ export function RehearseForm({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/towns/${townId}/rehearse`, {
+      const res = await fetch(withBase(`/api/towns/${townId}/rehearse`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ kind, title, hypothesis, agentName, intensity, runNow: true }),

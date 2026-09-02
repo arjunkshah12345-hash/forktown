@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { withBase } from "@/lib/paths";
 
 type KeyRow = {
   id: string;
@@ -18,7 +19,7 @@ export function ApiKeysPanel() {
   const [busy, setBusy] = useState(false);
 
   async function load() {
-    const res = await fetch("/api/keys");
+    const res = await fetch(withBase("/api/keys"));
     const data = await res.json();
     setKeys(data.keys ?? []);
   }
@@ -31,7 +32,7 @@ export function ApiKeysPanel() {
     setBusy(true);
     setFresh(null);
     try {
-      const res = await fetch("/api/keys", {
+      const res = await fetch(withBase("/api/keys"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
@@ -45,7 +46,7 @@ export function ApiKeysPanel() {
   }
 
   async function revoke(id: string) {
-    await fetch(`/api/keys?id=${id}`, { method: "DELETE" });
+    await fetch(withBase(`/api/keys?id=${id}`), { method: "DELETE" });
     await load();
   }
 

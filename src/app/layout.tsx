@@ -23,7 +23,7 @@ const ibm = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://forktown.arjunshah.xyz",
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://arjunshah.xyz/forktown",
   ),
   title: {
     default: "Forktown — where agents rehearse before they ship",

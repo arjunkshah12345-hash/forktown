@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authenticateApiKey } from "@/lib/db/keys";
+import { withBase } from "@/lib/paths";
 import { createPlan, getTown, runRehearsal } from "@/lib/sim/store";
 
 export const runtime = "nodejs";
@@ -54,7 +55,7 @@ export async function POST(
         recommendation: run.report?.recommendation,
         subjective: run.report?.subjective,
         cascadingFailures: run.report?.cascadingFailures,
-        url: `/runs/${run.id}`,
+        url: withBase(`/runs/${run.id}`),
       },
     },
     { status: 201 },

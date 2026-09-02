@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { MigrationPlaybook } from "@/lib/github/playbook";
+import { withBase } from "@/lib/paths";
 
 export function QuickRehearse({
   townId,
@@ -26,7 +27,7 @@ export function QuickRehearse({
   async function run() {
     setBusy(true);
     try {
-      const res = await fetch(`/api/towns/${townId}/rehearse`, {
+      const res = await fetch(withBase(`/api/towns/${townId}/rehearse`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { withBase } from "@/lib/paths";
 
 export function CreateTownForm() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export function CreateTownForm() {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/towns", {
+      const res = await fetch(withBase("/api/towns"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, codebase, customerCount: customers }),

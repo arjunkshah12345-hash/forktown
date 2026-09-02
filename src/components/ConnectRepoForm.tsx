@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { withBase } from "@/lib/paths";
 
 type Mode = "github" | "local";
 
@@ -21,7 +22,10 @@ export function ConnectRepoForm({ defaultLocalPath }: { defaultLocalPath?: strin
     setError(null);
     setPhase(mode === "github" ? "Fetching repository tree from GitHub…" : "Scanning local filesystem…");
     try {
-      const endpoint = mode === "github" ? "/api/towns/from-github" : "/api/towns/from-local";
+      const endpoint =
+        mode === "github"
+          ? withBase("/api/towns/from-github")
+          : withBase("/api/towns/from-local");
       const body =
         mode === "github"
           ? { repoUrl, name: name || undefined }

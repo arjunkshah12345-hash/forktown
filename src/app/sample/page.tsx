@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { withBase } from "@/lib/paths";
 import { PixelAchievement } from "@/components/retro/PixelAchievement";
 import { PixelAchievementLog } from "@/components/retro/PixelAchievementLog";
 import { PixelCharacterSheet } from "@/components/retro/PixelCharacterSheet";
@@ -213,9 +214,9 @@ export default function RetroSamplePage() {
         setTab(slot.tab);
         if (slot.tab === "war") setWarOpen(true);
         if (slot.tab === "quest") setShowQuest((v) => !v);
-        if (slot.tab === "keys") window.location.href = "/settings/keys";
-        if (slot.tab === "connect") window.location.href = "/connect";
-        if (slot.tab === "report") window.location.href = "/runs/wnzdt-HsH2fj";
+        if (slot.tab === "keys") window.location.href = withBase("/settings/keys");
+        if (slot.tab === "connect") window.location.href = withBase("/connect");
+        if (slot.tab === "report") window.location.href = withBase("/runs/wnzdt-HsH2fj");
       }
       if (e.key === "Escape") {
         setWarOpen(false);
@@ -571,9 +572,9 @@ export default function RetroSamplePage() {
                     setTab(slot.tab);
                     if (slot.tab === "war") setWarOpen(true);
                     if (slot.tab === "quest") setShowQuest((v) => !v);
-                    if (slot.tab === "keys") window.location.href = "/settings/keys";
-                    if (slot.tab === "connect") window.location.href = "/connect";
-                    if (slot.tab === "report") window.location.href = "/runs/wnzdt-HsH2fj";
+                    if (slot.tab === "keys") window.location.href = withBase("/settings/keys");
+                    if (slot.tab === "connect") window.location.href = withBase("/connect");
+                    if (slot.tab === "report") window.location.href = withBase("/runs/wnzdt-HsH2fj");
                   }}
                 >
                   <div className={`pixel-slot ${tab === slot.tab ? "pixel-slot-active" : ""}`}>
