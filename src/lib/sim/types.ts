@@ -284,4 +284,8 @@ export interface CreateTownInput {
   codebase: string;
   customerCount?: number;
   seed?: string;
+  /** How many synthetic users to materialize (world.customers can be larger). */
+  userSample?: number;
+  /** How many of those users get deep subjective minds up front. */
+  deepMinds?: number;
 }

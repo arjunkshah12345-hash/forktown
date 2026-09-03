@@ -40,6 +40,8 @@ export async function ensureStarterTown(): Promise<TownWithMeta> {
     codebase: "github.com/acme/billing-platform",
     customerCount: 12_000,
     seed: "acme-billing-forktown-v1",
+    userSample: 64,
+    deepMinds: 24,
   });
   town.id = STARTER_TOWN_SLUG;
   town.slug = STARTER_TOWN_SLUG;

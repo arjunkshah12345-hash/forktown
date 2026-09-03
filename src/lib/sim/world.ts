@@ -140,9 +140,12 @@ function buildUsers(
   rng: () => number,
   count: number,
   plans: Town["plans"],
+  sampleSize = 400,
+  deepMinds = 80,
 ): SyntheticUser[] {
   const users: SyntheticUser[] = [];
-  const n = Math.min(count, 400); // store a sample; world.customers holds full count
+  const n = Math.min(count, sampleSize);
+  const mindN = Math.min(n, deepMinds);
   for (let i = 0; i < n; i++) {
     const segment = pick(rng, ["free", "pro", "enterprise", "legacy"] as const);
     const billingState =
@@ -160,8 +163,7 @@ function buildUsers(
     if (chance(rng, segment === "legacy" ? 0.45 : 0.08)) {
       user.dependsOnBug = pick(rng, BUG_CONTRACTS);
     }
-    // Deep minds for a cohort; others hydrate on demand during rehearsal
-    if (i < 80) {
+    if (i < mindN) {
       user.mind = inventBuyerMind(user, rng);
     }
     users.push(user);
@@ -248,7 +250,13 @@ export function generateTown(input: CreateTownInput): Town {
   const customers = input.customerCount ?? int(rng, 12_000, 58_000);
   const districts = buildDistricts(rng);
   const plans = buildPlans(rng);
-  const users = buildUsers(rng, customers, plans);
+  const users = buildUsers(
+    rng,
+    customers,
+    plans,
+    input.userSample ?? 400,
+    input.deepMinds ?? 80,
+  );
   const tickets = buildTickets(rng, districts, users);
   const incidents = buildIncidents(rng);
   const actors = buildActors(rng);
