@@ -2135,3 +2135,144 @@
 .font-retro {
   font-family: var(--font-retro);
 }
+
+/* ── Real war room (sim-driven) ── */
+.pixel-real-war {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.pixel-real-war-rail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.55rem;
+  background: var(--px-panel);
+  border: 3px solid var(--px-border);
+  box-shadow: 0 3px 0 var(--px-shadow);
+}
+
+.pixel-phase-chip {
+  font-family: var(--font-pixel);
+  font-size: 0.36rem;
+  padding: 0.25rem 0.4rem;
+  border: 2px solid var(--px-border);
+  color: #bcaaa4;
+  background: var(--px-panel-hi);
+  text-transform: uppercase;
+}
+
+.pixel-phase-chip.active {
+  color: #1a0f0a;
+  background: var(--px-gold);
+  border-color: var(--px-gold-dark);
+}
+
+.pixel-phase-chip.done {
+  color: var(--px-success);
+  border-color: #33691e;
+}
+
+.pixel-real-war-controls {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pixel-scrub {
+  width: 7rem;
+  accent-color: var(--px-gold);
+}
+
+.pixel-real-war-grid {
+  min-height: 0;
+}
+
+.pixel-real-feed {
+  transform: none !important;
+  max-height: 160px;
+}
+
+.pixel-real-dialogue .pixel-real-turns {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 0.35rem 0.15rem;
+}
+
+.pixel-turn {
+  display: flex;
+  gap: 0.55rem;
+  padding: 0.45rem;
+  background: var(--px-panel-hi);
+  border: 2px solid var(--px-border);
+}
+
+.pixel-turn.agent {
+  border-color: #5dade2;
+}
+
+.pixel-turn.hostile {
+  border-color: var(--px-danger);
+}
+
+.pixel-turn.relieved {
+  border-color: var(--px-success);
+}
+
+.pixel-verdict.survived {
+  border-color: #66bb6a;
+  box-shadow: 0 4px 0 #1b5e20;
+}
+
+.pixel-verdict.collapsed {
+  border-color: var(--px-danger);
+  box-shadow: 0 4px 0 #7f1d1d;
+}
+
+.pixel-real-war-modal {
+  max-width: min(1100px, 96vw);
+  max-height: 92dvh;
+  overflow: auto;
+  width: 100%;
+}
+
+.pixel-live-hotbar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.35rem;
+}
+
+.pixel-hotbar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.45rem 0.25rem;
+  background: var(--px-panel);
+  border: 3px solid var(--px-border);
+  box-shadow: 0 3px 0 var(--px-shadow);
+  color: var(--px-cream);
+  cursor: pointer;
+  font-family: var(--font-pixel);
+}
+
+.pixel-hotbar-item:hover {
+  border-color: var(--px-gold);
+  color: var(--px-gold);
+}
+
+.pixel-hotbar-key {
+  font-size: 0.38rem;
+  color: var(--px-gold);
+}
+
+.pixel-hotbar-label {
+  font-size: 0.36rem;
+}

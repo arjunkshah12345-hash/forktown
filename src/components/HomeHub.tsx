@@ -9,7 +9,7 @@ const TIPS = [
   "Subjective minds remember every broken coupon.",
   "Agents negotiate — they don't roll dice.",
   "Rehearse Invoice Barn before you ship Friday.",
-  "Plant a repo. Grow a town. Survive the cutover.",
+  "Plant a real GitHub repo — the town is generated from the tree.",
   "Press M for chiptune while you explore.",
 ];
 
@@ -73,17 +73,17 @@ export function HomeHub() {
         </div>
 
         <div className="pixel-title-content">
-          <p className="pixel-title-eyebrow">★ WHERE AGENTS REHEARSE</p>
+          <p className="pixel-title-eyebrow">★ REAL SIMS · REAL REPOS</p>
           <h1 className="pixel-title-logo">
             FORK
             <span className="pixel-title-logo-accent">TOWN</span>
           </h1>
           <p className="pixel-title-tag">
-            Stardew energy for serious migrations · voxel towns · subjective minds
+            Living voxel towns powered by the rehearsal engine — not a concept mock
           </p>
 
           <div className="pixel-title-features">
-            {["voxel barns", "buyer minds", "war room", "agent quests"].map((t) => (
+            {["sim engine", "buyer minds", "war room", "github ingest"].map((t) => (
               <span key={t} className="pixel-title-chip">
                 {t}
               </span>
@@ -97,7 +97,7 @@ export function HomeHub() {
           <p className={`pixel-title-cta ${blink ? "on" : ""}`}>▶ PRESS ANY KEY · CLICK TO ENTER</p>
         </div>
 
-        <p className="pixel-title-foot">chiptune · M · v1 farmtown</p>
+        <p className="pixel-title-foot">starter town · live runs · v1</p>
       </div>
     );
   }
@@ -121,8 +121,8 @@ export function HomeHub() {
           >
             {music ? "♪ ON" : "♪ MUSIC"}
           </button>
-          <Link href="/sample" className="pixel-btn pixel-btn-ghost">
-            SAMPLE
+          <Link href="/towns/acme-billing-town" className="pixel-btn pixel-btn-ghost">
+            STARTER
           </Link>
           <Link href="/dashboard" className="pixel-btn pixel-btn-ghost">
             BOARD
@@ -140,16 +140,20 @@ export function HomeHub() {
             <span className="pixel-title-logo-accent">TOWN</span>
           </h1>
           <p className="pixel-hub-copy">
-            Plant a GitHub repo. Watch barns, canals, and villagers wake up. Let your agent rehearse
-            the scary cutover inside a world that fights back.
+            Enter a real simulated town, or plant your GitHub repo and grow one from the actual file
+            tree. Rehearsals run the engine — war room, minds, trust curves, the works.
           </p>
 
           <div className="pixel-hub-actions">
-            <Link href="/connect" className="pixel-btn pixel-btn-primary" onClick={() => blip()}>
-              ▶ PLANT YOUR REPO
+            <Link
+              href="/towns/acme-billing-town"
+              className="pixel-btn pixel-btn-primary"
+              onClick={() => blip()}
+            >
+              ▶ ENTER STARTER TOWN
             </Link>
-            <Link href="/sample" className="pixel-btn pixel-btn-ghost" onClick={() => blip()}>
-              PLAY SAMPLE TOWN
+            <Link href="/connect" className="pixel-btn pixel-btn-ghost" onClick={() => blip()}>
+              PLANT YOUR REPO
             </Link>
             <Link href="/towns" className="pixel-btn pixel-btn-ghost" onClick={() => blip()}>
               YOUR TOWNS
@@ -162,21 +166,21 @@ export function HomeHub() {
           {[
             {
               n: "01",
-              t: "Found a town",
-              d: "Fingerprint billing, auth, migrations — grow districts from the real tree.",
-              href: "/connect",
+              t: "Walk Acme Billing",
+              d: "Real districts + subjective minds. Hit Rehearse to run the sim.",
+              href: "/towns/acme-billing-town",
             },
             {
               n: "02",
-              t: "Walk the map",
-              d: "Click barns, talk to angry buyers, feel trust and anger as HP bars.",
-              href: "/sample",
+              t: "Plant a GitHub repo",
+              d: "We fingerprint billing/auth/migrations and found a town from the tree.",
+              href: "/connect",
             },
             {
               n: "03",
-              t: "Rehearse cutover",
-              d: "Agent enters. Town attacks. Survivability decides if you ship.",
-              href: "/connect",
+              t: "Open the war room",
+              d: "Scrub ticks, watch negotiations, read the survival verdict.",
+              href: "/towns/acme-billing-town",
             },
           ].map((q) => (
             <Link key={q.n} href={q.href} className="pixel-hub-quest" onClick={() => blip()}>

@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     template: "%s · Forktown",
   },
   description:
-    "A cozy voxel town around your codebase. AI agents farm migrations, fight fake incidents, and learn what changes survive — Stardew energy for serious shipping.",
+    "Living simulations of real codebases. AI agents rehearse migrations inside voxel towns that fight back — Stardew energy for serious shipping.",
   applicationName: "Forktown",
   keywords: [
     "Forktown",

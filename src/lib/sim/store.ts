@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import { getDb, schema } from "../db";
 import { ensureBootstrapKey } from "../db/keys";
 import { simulateRehearsal } from "./engine";
-import { generateTown } from "./world";
+import { generateAcmeBillingTown, generateTown } from "./world";
 import type {
   CreateTownInput,
   MigrationKind,
@@ -17,6 +17,8 @@ import { ingestGithubRepo } from "../github/ingest";
 import { ingestLocalRepo } from "../github/scanLocal";
 import type { TownWithMeta } from "../types/town";
 
+export const STARTER_TOWN_SLUG = "acme-billing-town";
+
 function parseTown(row: typeof schema.towns.$inferSelect): TownWithMeta {
   const town = JSON.parse(row.payload) as Town;
   return {
@@ -27,8 +29,26 @@ function parseTown(row: typeof schema.towns.$inferSelect): TownWithMeta {
   };
 }
 
-export async function listTowns(): Promise<Town[]> {
+/** Always-available real sim town (not a fake UI demo). */
+export async function ensureStarterTown(): Promise<TownWithMeta> {
   await ensureBootstrapKey();
+  const existing = await getTown(STARTER_TOWN_SLUG);
+  if (existing) return existing;
+
+  const town = generateAcmeBillingTown();
+  town.id = STARTER_TOWN_SLUG;
+  town.slug = STARTER_TOWN_SLUG;
+  town.name = "Acme Billing Town";
+  town.codebase = "github.com/acme/billing-platform";
+  persistTown(town, {
+    source: "starter",
+    repoUrl: "https://github.com/acme/billing-platform",
+  });
+  return (await getTown(STARTER_TOWN_SLUG))!;
+}
+
+export async function listTowns(): Promise<Town[]> {
+  await ensureStarterTown();
   const db = getDb();
   const rows = db.select().from(schema.towns).orderBy(desc(schema.towns.createdAt)).all();
   return rows.map(parseTown);

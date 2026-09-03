@@ -1,13 +1,8 @@
 export const metadata = {
-  title: "Forktown — Play sample",
-  description: "8-bit pixel town sample · Stardew-style UI concept",
+  title: "Forktown — Starter town",
+  description: "Enter the real Acme Billing Town simulation",
 };
 
 export default function SampleLayout({ children }: LayoutProps<"/sample">) {
-  return (
-    <div className="pixel-root">
-      <div className="pixel-scan" aria-hidden />
-      {children}
-    </div>
-  );
+  return children;
 }

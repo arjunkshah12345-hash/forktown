@@ -9,7 +9,7 @@ const links = [
   { href: "/dashboard", label: "Board" },
   { href: "/connect", label: "Plant repo" },
   { href: "/towns", label: "Towns" },
-  { href: "/sample", label: "Play sample" },
+  { href: "/towns/acme-billing-town", label: "Starter" },
   { href: "/settings/keys", label: "Keys" },
 ];
 

@@ -21,7 +21,7 @@ export default async function ConnectPage({
           <h1 className="px-title mt-4 !text-[clamp(0.7rem,2.2vw,0.95rem)]">CONNECT A CODEBASE</h1>
           <p className="px-body mt-3 px-muted">
             Forktown fingerprints billing/auth/migration surfaces from GitHub or a local checkout,
-            then founds a town sized to the real repo — not a canned demo world.
+            then founds a town sized to the real repo fingerprint.
           </p>
         </div>
         <div className="mt-4 shell">

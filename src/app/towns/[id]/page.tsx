@@ -67,11 +67,13 @@ export default async function TownDetailPage({
 
         <div className="mt-4">
           <LiveTownWorld
+            townId={town.id}
             districts={town.districts}
             actors={town.actors}
             users={town.users}
             minds={allMinds}
             townName={town.name}
+            playbook={playbook}
           />
         </div>
 
