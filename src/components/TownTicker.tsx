@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 
 const AMBIENT = [
   "Legacy buyer recalls double-apply coupon — status-quo bias rising",
@@ -20,29 +19,16 @@ export function TownTicker() {
   const [i, setI] = useState(0);
 
   useEffect(() => {
-    const id = setInterval(() => setI((x) => (x + 1) % AMBIENT.length), 3200);
+    const id = setInterval(() => setI((x) => (x + 1) % AMBIENT.length), 2800);
     return () => clearInterval(id);
   }, []);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[var(--hairline)] bg-white/50 px-4 py-3">
-      <div className="flex items-center gap-3">
-        <span className="beacon shrink-0" />
-        <div className="relative h-5 flex-1 overflow-hidden">
-          <AnimatePresence mode="wait">
-            <motion.p
-              key={i}
-              initial={{ y: 12, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -12, opacity: 0 }}
-              transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
-              className="font-display absolute inset-0 truncate text-sm text-ink"
-            >
-              {AMBIENT[i]}
-            </motion.p>
-          </AnimatePresence>
-        </div>
-      </div>
+    <div className="pixel-ticker-bar">
+      <span className="pixel-ticker-live">LIVE</span>
+      <p key={i} className="pixel-ticker-line">
+        {AMBIENT[i]}
+      </p>
     </div>
   );
 }

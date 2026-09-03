@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Press_Start_2P, VT323 } from "next/font/google";
 import "./globals.css";
+import "./sample/retro.css";
 
 const pressStart = Press_Start_2P({
   weight: "400",

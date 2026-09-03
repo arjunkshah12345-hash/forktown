@@ -23,23 +23,23 @@ export default async function RunPage({
   return (
     <>
       <SiteNav />
-      <main className="relative z-[2] mx-auto max-w-6xl flex-1 px-5 pb-28 pt-28 sm:px-8">
+      <main className="relative z-[2] mx-auto max-w-6xl flex-1 px-4 pb-20 pt-6 sm:px-8">
         <Link
           href={`/towns/${town.slug === "acme-billing-town" ? town.slug : town.id}`}
-          className="font-display text-sm text-ink-soft hover:text-ink"
+          className="font-pixel text-[0.42rem] text-[#bcaaa4] hover:text-[var(--amber)]"
         >
           ← {town.name}
         </Link>
-        <div className="mt-6 flex flex-wrap items-end justify-between gap-4">
+        <div className="mt-4 px-panel flex flex-wrap items-end justify-between gap-4 p-5">
           <div>
             <p className="eyebrow">
               <span className="beacon" />
               War room
             </p>
-            <h1 className="font-display mt-3 text-[clamp(1.8rem,4vw,2.75rem)] font-semibold tracking-tight">
+            <h1 className="px-title mt-3 !text-[clamp(0.65rem,2vw,0.95rem)]">
               {plan?.title ?? "Migration rehearsal"}
             </h1>
-            <p className="mt-2 text-ink-soft">
+            <p className="px-body mt-2 px-muted">
               Agent {plan?.agentName ?? "—"} · intensity {plan?.intensity ?? "—"} ·{" "}
               <span className="capitalize">{run.status}</span>
               {run.dialogue ? ` · ${run.dialogue.length} negotiation turns` : ""}

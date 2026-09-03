@@ -1,6 +1,5 @@
-@import "tailwindcss";
-
 /* ── Retro pixel sample theme (Stardew / 2000s RPG) ── */
+/* Tailwind is imported from globals.css — do not re-import here. */
 
 :root {
   --px-sky: #7ec8f7;
@@ -1827,4 +1826,312 @@
 
 .pixel-dialogue-choices .pixel-btn {
   font-size: 0.38rem;
+}
+
+/* ── Marketing hub + live town world ── */
+.pixel-title-world-bright {
+  opacity: 0.72;
+}
+
+.pixel-hub {
+  min-height: 100dvh;
+  position: relative;
+  color: var(--px-cream);
+  background: #1a120c;
+  font-family: var(--font-retro);
+}
+
+.pixel-hub-sky {
+  position: relative;
+  height: min(58dvh, 520px);
+  overflow: hidden;
+  border-bottom: 4px solid var(--px-border);
+  background: #7ec8f7;
+}
+
+.pixel-hub-world {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.pixel-hub-world .pixel-title-canvas {
+  width: 120%;
+  max-width: none;
+  height: 100%;
+  object-fit: cover;
+  border: none;
+  box-shadow: none;
+}
+
+.pixel-hub-fade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 40%, rgba(26, 15, 10, 0.55) 75%, #1a120c 100%);
+  pointer-events: none;
+}
+
+.pixel-hub-top {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  right: 0.75rem;
+  z-index: 5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pixel-hub-main {
+  position: relative;
+  z-index: 2;
+  margin-top: -4.5rem;
+  display: grid;
+  gap: 1rem;
+  padding: 0 1rem 1.5rem;
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (min-width: 900px) {
+  .pixel-hub-main {
+    grid-template-columns: 1.15fr 0.85fr;
+    align-items: start;
+  }
+}
+
+.pixel-hub-dialogue {
+  background: var(--px-panel);
+  border: 4px solid var(--px-border-hi);
+  box-shadow: inset 0 0 0 2px var(--px-shadow), 0 6px 0 var(--px-shadow);
+  padding: 1.1rem 1.2rem 1.25rem;
+}
+
+.pixel-hub-logo {
+  font-size: clamp(1.4rem, 5vw, 2.4rem) !important;
+  margin: 0.55rem 0 0.75rem;
+}
+
+.pixel-hub-copy {
+  font-size: 1.25rem;
+  line-height: 1.35;
+  color: #fff8e7;
+  max-width: 34rem;
+  margin: 0 0 1rem;
+}
+
+.pixel-hub-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pixel-hub-quests {
+  background: var(--px-panel);
+  border: 4px solid var(--px-border);
+  box-shadow: 0 4px 0 var(--px-shadow);
+  padding: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.pixel-hub-quest {
+  display: flex;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: inherit;
+  padding: 0.55rem 0.45rem;
+  border: 2px solid transparent;
+  background: var(--px-panel-hi);
+}
+
+.pixel-hub-quest:hover {
+  border-color: var(--px-gold);
+  color: var(--px-gold);
+}
+
+.pixel-hub-quest-n {
+  font-family: var(--font-pixel);
+  font-size: 0.45rem;
+  color: var(--px-gold);
+  min-width: 1.5rem;
+}
+
+.pixel-hub-quest-t {
+  display: block;
+  font-family: var(--font-pixel);
+  font-size: 0.48rem;
+  line-height: 1.5;
+  color: var(--px-cream);
+}
+
+.pixel-hub-quest-d {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 1.05rem;
+  color: #d7ccc8;
+}
+
+.pixel-hub-crops {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1rem 2rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 700px) {
+  .pixel-hub-crops {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.pixel-hub-crop {
+  background: var(--px-panel);
+  border: 3px solid var(--px-border);
+  box-shadow: 0 3px 0 var(--px-shadow);
+  padding: 0.9rem;
+}
+
+.pixel-hub-crop-icon {
+  font-size: 1.4rem;
+  margin: 0;
+  color: var(--px-gold);
+}
+
+.pixel-hub-crop h3 {
+  font-family: var(--font-pixel);
+  font-size: 0.5rem;
+  margin: 0.45rem 0;
+  color: var(--px-cream);
+  line-height: 1.5;
+}
+
+.pixel-hub-crop p {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #d7ccc8;
+}
+
+.pixel-hub-foot {
+  border-top: 4px solid var(--px-border);
+  background: var(--px-panel);
+  padding: 1.25rem 1rem 2rem;
+  text-align: center;
+  font-family: var(--font-pixel);
+  font-size: 0.42rem;
+  line-height: 1.7;
+  color: var(--px-gold);
+}
+
+.pixel-live-world {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.pixel-live-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.55rem;
+  background: var(--px-panel);
+  border: 3px solid var(--px-border);
+  box-shadow: 0 3px 0 var(--px-shadow);
+}
+
+.pixel-live-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+  font-family: var(--font-pixel);
+  font-size: 0.4rem;
+  color: var(--px-cream);
+}
+
+.pixel-live-season,
+.pixel-live-phase {
+  color: var(--px-gold);
+  padding: 0.2rem 0.35rem;
+  border: 2px solid var(--px-border);
+  background: var(--px-panel-hi);
+}
+
+.pixel-live-hint {
+  color: #bcaaa4;
+  font-size: 0.36rem;
+}
+
+.pixel-live-scene {
+  position: relative;
+  min-height: 360px;
+  height: min(58dvh, 560px);
+}
+
+.pixel-live-scene canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  image-rendering: pixelated;
+}
+
+.pixel-live-dialogue {
+  min-height: 110px;
+}
+
+.pixel-dialogue-card {
+  background: var(--px-panel);
+  border: 3px solid var(--px-border);
+  box-shadow: 0 3px 0 var(--px-shadow);
+  padding: 0.85rem;
+  color: var(--px-cream);
+}
+
+.pixel-ticker-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  overflow: hidden;
+  background: var(--px-panel);
+  border: 3px solid var(--px-border);
+  box-shadow: 0 3px 0 var(--px-shadow);
+  padding: 0.55rem 0.75rem;
+}
+
+.pixel-ticker-live {
+  font-family: var(--font-pixel);
+  font-size: 0.38rem;
+  color: #1a0f0a;
+  background: var(--px-gold);
+  border: 2px solid var(--px-gold-dark);
+  padding: 0.2rem 0.35rem;
+  flex-shrink: 0;
+}
+
+.pixel-ticker-line {
+  margin: 0;
+  font-family: var(--font-retro);
+  font-size: 1.15rem;
+  color: var(--px-cream);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: pixel-ticker-in 0.25s steps(3, end);
+}
+
+@keyframes pixel-ticker-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.font-retro {
+  font-family: var(--font-retro);
 }

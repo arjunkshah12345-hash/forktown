@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteNav } from "@/components/SiteNav";
-import { TownMap } from "@/components/TownMap";
+import { LiveTownWorld } from "@/components/LiveTownWorld";
 import { WorldMeters } from "@/components/WorldMeters";
 import { MindCard } from "@/components/MindCard";
 import { TownTicker } from "@/components/TownTicker";
@@ -32,6 +32,7 @@ export default async function TownDetailPage({
     .slice(0, 6)
     .map((u) => u.mind ?? inventBuyerMind(u, rng));
   const actorMinds = town.actors.map((a) => a.mind ?? inventActorMind(a, rng));
+  const allMinds = [...actorMinds, ...buyerMinds];
   const census = cohortStats(hydrateMinds(town.users, town.actors, town.seed));
   const fingerprint = town.fingerprint;
   const repoUrl = town.repoUrl;
@@ -41,162 +42,141 @@ export default async function TownDetailPage({
   return (
     <>
       <SiteNav />
-      <main className="relative z-[2] mx-auto max-w-6xl flex-1 px-5 pb-28 pt-28 sm:px-8">
-        <div className="flex flex-wrap items-end justify-between gap-6">
+      <main className="relative z-[2] mx-auto max-w-6xl flex-1 px-4 pb-20 pt-6 sm:px-8">
+        <div className="px-panel flex flex-wrap items-end justify-between gap-6 p-5 sm:p-6">
           <div>
             <p className="eyebrow">
               <span className="beacon" />
               Live town
             </p>
-            <h1 className="font-display mt-4 text-[clamp(2rem,5vw,3.25rem)] font-semibold tracking-tight">
-              {town.name}
-            </h1>
-            <p className="font-mono mt-2 text-sm text-ink-soft">{town.codebase}</p>
+            <h1 className="px-title mt-4 !text-[clamp(0.7rem,2.4vw,1.05rem)]">{town.name}</h1>
+            <p className="px-body mt-2 text-[1.05rem] px-muted">{town.codebase}</p>
           </div>
           <div className="flex flex-wrap gap-3">
             <QuickRehearse townId={town.id} playbook={playbook} />
             <Link href={`/towns/${town.id}/rehearse`} className="btn-ghost">
-              Custom rehearsal
+              Custom quest
             </Link>
             {canResync && <ResyncButton townId={town.id} />}
           </div>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-4">
           <TownTicker />
         </div>
 
+        <div className="mt-4">
+          <LiveTownWorld
+            districts={town.districts}
+            actors={town.actors}
+            users={town.users}
+            minds={allMinds}
+            townName={town.name}
+          />
+        </div>
+
         {fingerprint && (
-          <section className="mt-8 shell">
-            <div className="shell-inner p-5 sm:p-6">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="font-display text-xs uppercase tracking-[0.16em] text-ink-soft">
-                    Repo fingerprint
-                  </p>
-                  <h2 className="font-display mt-2 text-xl font-semibold tracking-tight">
-                    {fingerprint.fullName}
-                  </h2>
-                  <p className="font-mono mt-1 text-xs text-ink-soft">
-                    {fingerprint.filesSampled} files · ★ {fingerprint.stars} · branch{" "}
-                    {fingerprint.defaultBranch}
-                  </p>
-                </div>
-                {repoUrl && (
-                  <a
-                    href={repoUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn-ghost text-sm"
-                  >
-                    Open on GitHub
-                  </a>
-                )}
-                {fingerprint.source === "local" && fingerprint.localPath && (
-                  <p className="font-mono text-[10px] text-ink-soft">{fingerprint.localPath}</p>
-                )}
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {[
-                  fingerprint.hasBilling && "billing",
-                  fingerprint.hasStripe && "stripe",
-                  fingerprint.hasAuth && "auth",
-                  fingerprint.hasMigrations && "migrations",
-                  fingerprint.hasWebhooks && "webhooks",
-                  ...fingerprint.suggestedMigrations.map((m) => `rehearse:${m}`),
-                ]
-                  .filter(Boolean)
-                  .map((t) => (
-                    <span
-                      key={String(t)}
-                      className="font-mono rounded-full bg-ink/5 px-2.5 py-1 text-[10px] uppercase tracking-wider text-ink-soft"
-                    >
-                      {t}
-                    </span>
-                  ))}
-              </div>
-              {fingerprint.pathHits?.length > 0 && (
-                <p className="font-mono mt-4 text-[11px] leading-relaxed text-ink-soft">
-                  Paths: {fingerprint.pathHits.slice(0, 8).join(" · ")}
-                  {fingerprint.pathHits.length > 8 ? "…" : ""}
+          <section className="mt-4 px-panel p-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="font-pixel text-[0.4rem] uppercase text-[#bcaaa4]">Repo fingerprint</p>
+                <h2 className="font-pixel mt-2 text-[0.55rem] leading-relaxed text-[var(--amber)]">
+                  {fingerprint.fullName}
+                </h2>
+                <p className="px-body mt-1 text-[1rem] px-muted">
+                  {fingerprint.filesSampled} files · ★ {fingerprint.stars} · branch{" "}
+                  {fingerprint.defaultBranch}
                 </p>
+              </div>
+              {repoUrl && (
+                <a href={repoUrl} target="_blank" rel="noreferrer" className="btn-ghost text-sm">
+                  Open on GitHub
+                </a>
               )}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {[
+                fingerprint.hasBilling && "billing",
+                fingerprint.hasStripe && "stripe",
+                fingerprint.hasAuth && "auth",
+                fingerprint.hasMigrations && "migrations",
+                fingerprint.hasWebhooks && "webhooks",
+                ...fingerprint.suggestedMigrations.map((m) => `rehearse:${m}`),
+              ]
+                .filter(Boolean)
+                .map((t) => (
+                  <span key={String(t)} className="px-chip">
+                    {t}
+                  </span>
+                ))}
             </div>
           </section>
         )}
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-4">
+        <div className="mt-4 grid gap-2 sm:grid-cols-4">
           {[
             ["Cohort trust", `${(census.meanTrust * 100).toFixed(0)}%`],
             ["Mean anger", `${(census.meanAnger * 100).toFixed(0)}%`],
             ["Low-trust minds", String(census.lowTrust)],
             ["Churn-ready", String(census.churnReady)],
           ].map(([k, v]) => (
-            <div key={k} className="rounded-2xl border border-[var(--hairline)] bg-white/50 px-4 py-3">
-              <p className="font-display text-[10px] uppercase tracking-wider text-ink-soft">{k}</p>
-              <p className="font-display tele-line mt-1 text-2xl font-semibold">{v}</p>
+            <div key={k} className="px-stat">
+              <p className="k">{k}</p>
+              <p className="v">{v}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-8 shell">
+        <div className="mt-4 shell">
           <div className="shell-inner p-4 sm:p-5">
             <WorldMeters world={town.world} />
           </div>
         </div>
 
-        <div className="mt-8 shell">
-          <TownMap districts={town.districts} live className="h-[420px] sm:h-[520px]" />
-        </div>
-
-        <section className="mt-16">
+        <section className="mt-6 px-panel p-5">
           <p className="eyebrow">Subjective minds</p>
-          <h2 className="font-display mt-3 text-2xl font-semibold tracking-tight">
-            Not dice rolls — buyers and operators with reference points
+          <h2 className="font-pixel mt-3 text-[0.6rem] leading-relaxed text-[var(--paper)]">
+            Not dice rolls — buyers with reference points
           </h2>
-          <p className="mt-2 max-w-2xl text-ink-soft">
-            Each mind scores options with prospect theory (loss aversion λ), affect, and episodic
-            memory, then picks via softmax. Angry, low-trust, high-arousal minds act first — then
-            negotiate with the agent.
+          <p className="px-body mt-2 max-w-2xl px-muted">
+            Each mind scores options with prospect theory, affect, and memory — then negotiates with
+            your agent.
           </p>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[...actorMinds, ...buyerMinds].slice(0, 9).map((m) => (
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {allMinds.slice(0, 9).map((m) => (
               <MindCard key={m.id} mind={m} />
             ))}
           </div>
         </section>
 
-        <div className="mt-16 grid gap-12 lg:grid-cols-2">
-          <section>
-            <h2 className="font-display text-xl font-semibold tracking-tight">Actors in town</h2>
-            <ul className="mt-5 space-y-3">
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <section className="px-panel p-5">
+            <h2 className="font-pixel text-[0.55rem] text-[var(--amber)]">Actors in town</h2>
+            <ul className="mt-4">
               {town.actors.map((a) => (
-                <li
-                  key={a.id}
-                  className="flex items-baseline justify-between gap-4 border-b border-[var(--hairline)] pb-3"
-                >
+                <li key={a.id} className="px-list-row flex items-baseline justify-between gap-4">
                   <div>
-                    <p className="font-display font-medium">{a.name}</p>
-                    <p className="text-sm text-ink-soft">{a.stance}</p>
+                    <p className="font-pixel text-[0.48rem] text-[var(--paper)]">{a.name}</p>
+                    <p className="px-body mt-1 text-[1rem] px-muted">{a.stance}</p>
                   </div>
-                  <span className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">
-                    {a.kind}
-                  </span>
+                  <span className="px-chip">{a.kind}</span>
                 </li>
               ))}
             </ul>
           </section>
 
-          <section>
-            <h2 className="font-display text-xl font-semibold tracking-tight">Open pressure</h2>
-            <ul className="mt-5 space-y-3">
+          <section className="px-panel p-5">
+            <h2 className="font-pixel text-[0.55rem] text-[var(--amber)]">Open pressure</h2>
+            <ul className="mt-4">
               {town.tickets
                 .filter((t) => t.open)
                 .slice(0, 8)
                 .map((t) => (
-                  <li key={t.id} className="border-b border-[var(--hairline)] pb-3">
-                    <p className="font-display text-[15px]">{t.subject}</p>
-                    <p className="font-mono mt-1 text-[10px] uppercase tracking-wider text-signal">
+                  <li key={t.id} className="px-list-row">
+                    <p className="font-pixel text-[0.45rem] leading-relaxed text-[var(--paper)]">
+                      {t.subject}
+                    </p>
+                    <p className="mt-1 font-pixel text-[0.35rem] uppercase text-[var(--signal)]">
                       {t.severity}
                     </p>
                   </li>
@@ -207,65 +187,64 @@ export default async function TownDetailPage({
               .map((inc) => (
                 <div
                   key={inc.id}
-                  className="mt-6 rounded-2xl border border-[color-mix(in_oklab,var(--danger)_25%,transparent)] bg-[color-mix(in_oklab,var(--danger)_6%,white)] px-4 py-3"
+                  className="mt-4 border-4 border-[var(--danger)] bg-[#3e1a16] px-3 py-3"
                 >
-                  <p className="font-display text-sm font-semibold text-danger">Active incident</p>
-                  <p className="mt-1 text-sm text-ink-soft">{inc.title}</p>
+                  <p className="font-pixel text-[0.42rem] text-[var(--danger)]">Active incident</p>
+                  <p className="px-body mt-1 text-[1.05rem]">{inc.title}</p>
                 </div>
               ))}
           </section>
         </div>
 
-        <section className="mt-16">
+        <section className="mt-4 px-panel p-5">
           <div className="flex items-baseline justify-between gap-4">
-            <h2 className="font-display text-xl font-semibold tracking-tight">Rehearsal history</h2>
-            <p className="text-sm text-ink-soft">
+            <h2 className="font-pixel text-[0.55rem] text-[var(--amber)]">Rehearsal history</h2>
+            <p className="font-pixel text-[0.38rem] text-[#bcaaa4]">
               {runs.length} runs · {plans.length} plans
             </p>
           </div>
           {runs.length === 0 ? (
-            <p className="mt-4 text-ink-soft">
+            <p className="px-body mt-4 px-muted">
               No rehearsals yet. Hit one-click billing rehearsal to open the war room.
             </p>
           ) : (
             <>
               <RunCompare runs={runs} />
-              <ul className="mt-5 space-y-3">
-              {runs.map((r) => (
-                <li key={r.id}>
-                  <Link
-                    href={`/runs/${r.id}`}
-                    className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--hairline)] bg-white/50 px-4 py-3 transition hover:bg-white/80"
-                  >
-                    <div>
-                      <p className="font-display font-medium capitalize">{r.status}</p>
-                      <p className="font-mono text-xs text-ink-soft">{r.id}</p>
-                    </div>
-                    <p className="font-display tele-line text-lg font-semibold">
-                      {r.report ? `${(r.report.overall * 100).toFixed(0)}%` : "—"}
-                    </p>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+              <ul className="mt-4">
+                {runs.map((r) => (
+                  <li key={r.id} className="px-list-row">
+                    <Link href={`/runs/${r.id}`} className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="font-pixel text-[0.48rem] capitalize text-[var(--paper)]">
+                          {r.status}
+                        </p>
+                        <p className="px-body mt-1 text-[0.95rem] px-muted">{r.id}</p>
+                      </div>
+                      <p className="font-pixel text-[0.65rem] text-[var(--amber)]">
+                        {r.report ? `${(r.report.overall * 100).toFixed(0)}%` : "—"}
+                      </p>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </>
           )}
         </section>
 
-        <section className="mt-16">
-          <h2 className="font-display text-xl font-semibold tracking-tight">Legacy bug contracts</h2>
-          <p className="mt-2 max-w-xl text-sm text-ink-soft">
-            These are baked into buyer reference points. Break them without an explicit migration
-            path and loss-averse minds escalate.
+        <section className="mt-4 px-panel p-5">
+          <h2 className="font-pixel text-[0.55rem] text-[var(--amber)]">Legacy bug contracts</h2>
+          <p className="px-body mt-2 max-w-xl text-[1.05rem] px-muted">
+            Baked into buyer reference points. Break them without a migration path and loss-averse
+            minds escalate.
           </p>
-          <ul className="mt-5 columns-1 gap-x-8 sm:columns-2">
+          <ul className="mt-4 columns-1 gap-x-8 sm:columns-2">
             {town.users
               .filter((u) => u.dependsOnBug)
               .slice(0, 12)
               .map((u) => (
-                <li key={u.id} className="mb-3 break-inside-avoid border-b border-[var(--hairline)] pb-2">
-                  <p className="font-display text-sm font-medium">{u.name}</p>
-                  <p className="text-sm text-ink-soft">{u.dependsOnBug}</p>
+                <li key={u.id} className="mb-3 break-inside-avoid border-b-2 border-[var(--border)] pb-2">
+                  <p className="font-pixel text-[0.45rem] text-[var(--paper)]">{u.name}</p>
+                  <p className="px-body mt-1 text-[1rem] px-muted">{u.dependsOnBug}</p>
                 </li>
               ))}
           </ul>

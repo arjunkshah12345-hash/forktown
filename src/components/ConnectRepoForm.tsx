@@ -53,7 +53,7 @@ export function ConnectRepoForm({ defaultLocalPath }: { defaultLocalPath?: strin
       <div className="flex gap-2">
         {(
           [
-            ["github", "GitHub"],
+            ["github", "GitHub seed"],
             ["local", "Local path"],
           ] as const
         ).map(([id, label]) => (
@@ -61,11 +61,7 @@ export function ConnectRepoForm({ defaultLocalPath }: { defaultLocalPath?: strin
             key={id}
             type="button"
             onClick={() => setMode(id)}
-            className={`font-display rounded-full px-4 py-2 text-sm transition ${
-              mode === id
-                ? "bg-ink text-paper"
-                : "border border-[var(--hairline)] bg-white/50 text-ink-soft hover:text-ink"
-            }`}
+            className={`pixel-btn ${mode === id ? "pixel-btn-primary" : "pixel-btn-ghost"}`}
           >
             {label}
           </button>
@@ -74,12 +70,10 @@ export function ConnectRepoForm({ defaultLocalPath }: { defaultLocalPath?: strin
 
       {mode === "github" ? (
         <label className="block">
-          <span className="font-display text-xs uppercase tracking-[0.16em] text-ink-soft">
-            GitHub repository
-          </span>
+          <span className="font-pixel text-[0.4rem] uppercase text-[#bcaaa4]">GitHub repository</span>
           <input
             required
-            className="font-mono mt-2 w-full rounded-2xl border border-[var(--hairline)] bg-white/70 px-4 py-3 text-sm outline-none focus:border-ink/30"
+            className="mt-2 w-full px-3 py-2.5"
             placeholder="https://github.com/org/repo"
             value={repoUrl}
             onChange={(e) => setRepoUrl(e.target.value)}
@@ -87,12 +81,12 @@ export function ConnectRepoForm({ defaultLocalPath }: { defaultLocalPath?: strin
         </label>
       ) : (
         <label className="block">
-          <span className="font-display text-xs uppercase tracking-[0.16em] text-ink-soft">
+          <span className="font-pixel text-[0.4rem] uppercase text-[#bcaaa4]">
             Absolute path on this machine
           </span>
           <input
             required
-            className="font-mono mt-2 w-full rounded-2xl border border-[var(--hairline)] bg-white/70 px-4 py-3 text-sm outline-none focus:border-ink/30"
+            className="mt-2 w-full px-3 py-2.5"
             placeholder="/Users/you/projects/my-app"
             value={localPath}
             onChange={(e) => setLocalPath(e.target.value)}
@@ -101,27 +95,25 @@ export function ConnectRepoForm({ defaultLocalPath }: { defaultLocalPath?: strin
       )}
 
       <label className="block">
-        <span className="font-display text-xs uppercase tracking-[0.16em] text-ink-soft">
-          Town name (optional)
-        </span>
+        <span className="font-pixel text-[0.4rem] uppercase text-[#bcaaa4]">Town name (optional)</span>
         <input
-          className="font-display mt-2 w-full rounded-2xl border border-[var(--hairline)] bg-white/70 px-4 py-3 outline-none focus:border-ink/30"
+          className="mt-2 w-full px-3 py-2.5"
           placeholder="Derived from repo name if empty"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
       </label>
-      {phase && <p className="font-mono text-xs text-canal">{phase}</p>}
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {phase && <p className="font-pixel text-[0.4rem] text-[var(--canal)]">{phase}</p>}
+      {error && <p className="font-pixel text-[0.42rem] text-[var(--danger)]">{error}</p>}
       <button type="submit" disabled={busy} className="btn-island disabled:opacity-60">
-        {busy ? "Ingesting real repo…" : "Connect & found town"}
+        {busy ? "Growing town…" : "Plant & found town"}
         <span className="orb">{busy ? "…" : "↗"}</span>
       </button>
-      <p className="text-xs text-ink-soft">
+      <p className="px-body text-[1rem] px-muted">
         {mode === "github" ? (
           <>
-            Public repos work without a token. For private repos or higher rate limits, set{" "}
-            <code className="font-mono">GITHUB_TOKEN</code> in <code className="font-mono">.env.local</code>.
+            Public repos work without a token. For private repos, set{" "}
+            <code className="font-pixel text-[0.4rem] text-[var(--amber)]">GITHUB_TOKEN</code>.
           </>
         ) : (
           <>Local ingest runs on the Forktown server — use the CLI for remote machines.</>
