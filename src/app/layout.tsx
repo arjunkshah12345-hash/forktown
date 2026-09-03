@@ -1,23 +1,18 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Source_Serif_4, IBM_Plex_Mono } from "next/font/google";
+import { Press_Start_2P, VT323 } from "next/font/google";
 import "./globals.css";
 
-const bricolage = Bricolage_Grotesque({
-  variable: "--font-bricolage",
+const pressStart = Press_Start_2P({
+  weight: "400",
   subsets: ["latin"],
+  variable: "--font-press-start",
   display: "swap",
 });
 
-const source = Source_Serif_4({
-  variable: "--font-source",
+const vt323 = VT323({
+  weight: "400",
   subsets: ["latin"],
-  display: "swap",
-});
-
-const ibm = IBM_Plex_Mono({
-  variable: "--font-ibm",
-  subsets: ["latin"],
-  weight: ["400", "500"],
+  variable: "--font-vt323",
   display: "swap",
 });
 
@@ -30,7 +25,7 @@ export const metadata: Metadata = {
     template: "%s · Forktown",
   },
   description:
-    "Living simulations of real codebases. AI agents experiment, break things, fight fake incidents, and learn what changes actually survive. Start with agent-safe migrations.",
+    "A cozy voxel town around your codebase. AI agents farm migrations, fight fake incidents, and learn what changes survive — Stardew energy for serious shipping.",
   applicationName: "Forktown",
   keywords: [
     "Forktown",
@@ -38,6 +33,7 @@ export const metadata: Metadata = {
     "migration rehearsal",
     "AI agents",
     "SimCity for codebases",
+    "Stardew Valley",
   ],
   authors: [{ name: "Arjun Shah" }],
   openGraph: {
@@ -73,11 +69,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${bricolage.variable} ${source.variable} ${ibm.variable} h-full`}
-    >
-      <body className="topo-grain min-h-full flex flex-col antialiased">{children}</body>
+    <html lang="en" className={`${pressStart.variable} ${vt323.variable} h-full`}>
+      <body className="topo-grain flex min-h-full flex-col">{children}</body>
     </html>
   );
 }

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { COLS, PAL, ROWS, TILE, drawClouds, drawTile, drawTree, drawVoxelBuilding, skyColors } from "./pixel-engine";
+import { COLS, ROWS, TILE, drawClouds, drawTile, drawTree, drawVoxelBuilding, skyColors } from "./pixel-engine";
 import { SAMPLE_DISTRICTS } from "./sample-data";
 
-/** Animated town preview for the title screen */
+/** Animated town preview for the title screen / marketing hero */
 export function PixelTitleCanvas() {
   const ref = useRef<HTMLCanvasElement>(null);
 
@@ -69,7 +69,8 @@ export function PixelTitleCanvas() {
       ref={ref}
       width={COLS * TILE}
       height={ROWS * TILE}
-      className="pixel-title-canvas"
+      className="pixel-title-canvas h-full w-full"
+      style={{ imageRendering: "pixelated", width: "100%", height: "100%", objectFit: "cover" }}
       aria-hidden
     />
   );

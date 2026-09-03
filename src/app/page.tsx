@@ -4,21 +4,24 @@ import { HeroTown } from "@/components/HeroTown";
 
 const wedges = [
   {
-    title: "Billing migrations",
-    body: "Checkout → invoices, coupon ghosts, tax edges, finance close — before prod revenue bleeds.",
+    title: "Billing barn",
+    body: "Checkout → invoices, coupon ghosts, tax edges — rehearse before revenue bleeds.",
+    tile: "⌂",
   },
   {
-    title: "Auth migrations",
+    title: "Auth gate",
     body: "Sessions, IdPs, MFA cutovers with synthetic attackers and legacy login quirks.",
+    tile: "⛨",
   },
   {
-    title: "Database migrations",
-    body: "Online backfills, half-failed locks, read-repair, and customers who depend on old shapes.",
+    title: "Data silo",
+    body: "Online backfills, half-failed locks, and customers who still need the old shape.",
+    tile: "▣",
   },
 ];
 
 const layers = [
-  "Synthetic users",
+  "Synthetic villagers",
   "Subjective buyer minds",
   "Traffic & retries",
   "Support tickets",
@@ -37,166 +40,159 @@ export default function HomePage() {
     <>
       <SiteNav />
       <main className="relative z-[2] flex-1">
-        {/* Hero — brand first, one headline, one sentence, CTAs, full-bleed map */}
-        <section className="relative min-h-[100dvh] overflow-hidden pt-28">
-          <div className="absolute inset-0">
-            <HeroTown />
-          </div>
-          <div className="relative mx-auto flex min-h-[calc(100dvh-7rem)] max-w-6xl flex-col justify-end px-5 pb-16 sm:px-8 sm:pb-20">
-            <div className="max-w-2xl rounded-[2rem] border border-[var(--hairline)] bg-[color-mix(in_oklab,white_72%,transparent)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-xl sm:p-8">
-              <p className="eyebrow">
-                <span className="beacon" />
-                Codebase simulator
+        <section className="relative min-h-[100dvh] overflow-hidden">
+          <HeroTown />
+          <div className="relative mx-auto flex min-h-[100dvh] max-w-6xl flex-col justify-end px-4 pb-10 pt-28 sm:px-8 sm:pb-14">
+            <div className="px-dialogue max-w-xl">
+              <p className="font-pixel text-[0.45rem] uppercase tracking-widest text-[var(--amber)]">
+                ★ A living town for your codebase
               </p>
-              <h1 className="font-display mt-5 text-[clamp(2.75rem,8vw,5.5rem)] font-semibold leading-[0.92] tracking-[-0.04em] text-ink">
-                Forktown
-              </h1>
-              <p className="mt-4 max-w-md text-lg leading-relaxed text-ink-soft sm:text-xl">
-                Where agents rehearse before they ship.
+              <h1 className="px-title mt-4">FORKTOWN</h1>
+              <p className="px-body mt-4 max-w-md text-[#fff8e7]">
+                Plant a repo. Watch villagers, barns, and canals wake up. Let agents rehearse the
+                scary migration — Stardew vibes, serious stakes.
               </p>
-              <div className="mt-8 flex flex-wrap items-center gap-3">
+              <div className="mt-6 flex flex-wrap items-center gap-3">
                 <Link href="/connect" className="btn-island">
-                  Connect your GitHub repo
+                  Plant your GitHub repo
                   <span className="orb">↗</span>
                 </Link>
-                <Link href="/dashboard" className="btn-ghost">
-                  Dashboard
-                </Link>
-                <Link href="/towns" className="btn-ghost">
-                  Your towns
-                </Link>
                 <Link href="/sample" className="btn-ghost">
-                  Retro sample 🎮
+                  Play the sample town
+                </Link>
+                <Link href="/dashboard" className="btn-ghost">
+                  Board
                 </Link>
               </div>
             </div>
           </div>
         </section>
 
-        <section id="how" className="mx-auto max-w-6xl px-5 py-28 sm:px-8">
-          <p className="eyebrow">The shallow path is not enough</p>
-          <h2 className="font-display mt-5 max-w-3xl text-[clamp(1.8rem,4vw,3rem)] font-semibold leading-[1.05] tracking-tight text-ink">
-            Issue → repo → PR → tests is theater. Real software lives in a world.
-          </h2>
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-soft">
-            Users behave weirdly. APIs go down. Migrations fail halfway. Old customers depend on bugs.
-            Forktown wraps your codebase in that world so an agent can prove a change survives —
-            not just that green checks stay green.
-          </p>
+        <section id="how" className="mx-auto max-w-6xl px-4 py-16 sm:px-8 sm:py-24">
+          <div className="px-panel p-5 sm:p-8">
+            <p className="eyebrow">Quest log</p>
+            <h2 className="px-title mt-5 max-w-3xl !text-[clamp(0.7rem,2vw,0.95rem)] !text-[var(--paper)]">
+              Green checks are theater. Real software lives in a world.
+            </h2>
+            <p className="px-body mt-5 max-w-2xl px-muted">
+              Users behave weirdly. APIs go down. Migrations fail halfway. Old customers depend on
+              bugs. Forktown wraps your codebase in that world so an agent can prove a change
+              survives — not just that CI stayed green.
+            </p>
 
-          <div className="mt-16 grid gap-10 md:grid-cols-3">
-            {[
-              {
-                n: "01",
-                t: "Found a town",
-                d: "We synthesize districts, customers, tickets, incidents, and actors around your repo.",
-              },
-              {
-                n: "02",
-                t: "Agent enters",
-                d: "Your coding agent rehearses the migration inside the simulation — dual-writes, flags, rollbacks.",
-              },
-              {
-                n: "03",
-                t: "Town attacks",
-                d: "Eight pressure layers hit the change. Survivability decides if you trust the PR.",
-              },
-            ].map((s) => (
-              <div key={s.n}>
-                <p className="font-mono text-sm text-amber">{s.n}</p>
-                <h3 className="font-display mt-2 text-2xl font-semibold tracking-tight">{s.t}</h3>
-                <p className="mt-3 leading-relaxed text-ink-soft">{s.d}</p>
-              </div>
-            ))}
+            <div className="mt-10 grid gap-4 md:grid-cols-3">
+              {[
+                {
+                  n: "01",
+                  t: "Found a town",
+                  d: "We grow districts, villagers, tickets, and incidents around your repo.",
+                },
+                {
+                  n: "02",
+                  t: "Agent enters",
+                  d: "Your coding agent rehearses the cutover — dual-writes, flags, rollbacks.",
+                },
+                {
+                  n: "03",
+                  t: "Town attacks",
+                  d: "Pressure layers hit the change. Survivability decides if you ship.",
+                },
+              ].map((s) => (
+                <div key={s.n} className="px-panel-hi p-4">
+                  <p className="font-pixel text-[0.45rem] text-[var(--amber)]">{s.n}</p>
+                  <h3 className="font-pixel mt-3 text-[0.55rem] leading-relaxed text-[var(--paper)]">
+                    {s.t}
+                  </h3>
+                  <p className="px-body mt-3 text-[1.05rem] px-muted">{s.d}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
-        <section className="border-y border-[var(--hairline)] bg-[color-mix(in_oklab,white_45%,transparent)] py-24">
-          <div className="mx-auto max-w-6xl px-5 sm:px-8">
-            <p className="eyebrow">Wedge</p>
-            <h2 className="font-display mt-5 text-[clamp(1.8rem,4vw,2.75rem)] font-semibold tracking-tight">
+        <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-8">
+          <div className="px-panel p-5 sm:p-8">
+            <p className="eyebrow">Crop rotation</p>
+            <h2 className="px-title mt-5 !text-[clamp(0.65rem,2vw,0.9rem)] !text-[var(--paper)]">
               Agent-safe migrations first
             </h2>
-            <p className="mt-4 max-w-xl text-lg text-ink-soft">
+            <p className="px-body mt-4 max-w-xl px-muted">
               Valuable, scary, and currently hard for agents. Rehearse before prod.
             </p>
-            <div className="mt-14 grid gap-12 md:grid-cols-3">
+            <div className="mt-10 grid gap-4 md:grid-cols-3">
               {wedges.map((w) => (
-                <article key={w.title}>
-                  <h3 className="font-display text-xl font-semibold tracking-tight">{w.title}</h3>
-                  <p className="mt-3 leading-relaxed text-ink-soft">{w.body}</p>
+                <article key={w.title} className="px-panel-hi p-4">
+                  <p className="font-pixel text-[1rem] text-[var(--amber)]" aria-hidden>
+                    {w.tile}
+                  </p>
+                  <h3 className="font-pixel mt-3 text-[0.55rem] leading-relaxed">{w.title}</h3>
+                  <p className="px-body mt-3 text-[1.05rem] px-muted">{w.body}</p>
                 </article>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-5 py-28 sm:px-8">
-          <div className="grid items-end gap-12 lg:grid-cols-[1fr_1.1fr]">
-            <div>
-              <p className="eyebrow">What the town generates</p>
-              <h2 className="font-display mt-5 text-[clamp(1.8rem,4vw,2.75rem)] font-semibold tracking-tight">
+        <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-8">
+          <div className="grid gap-4 lg:grid-cols-[1fr_1.1fr]">
+            <div className="px-panel p-5 sm:p-8">
+              <p className="eyebrow">What the town grows</p>
+              <h2 className="px-title mt-5 !text-[clamp(0.65rem,2vw,0.9rem)] !text-[var(--paper)]">
                 Not another coding agent. A world that fights back.
               </h2>
             </div>
-            <ul className="columns-1 gap-x-10 sm:columns-2">
+            <ul className="px-panel grid gap-0 p-2 sm:grid-cols-2">
               {layers.map((l) => (
-                <li
-                  key={l}
-                  className="mb-3 break-inside-avoid border-b border-[var(--hairline)] pb-3 font-display text-lg tracking-tight text-ink"
-                >
-                  {l}
+                <li key={l} className="px-list-row px-3 font-pixel text-[0.45rem] leading-relaxed text-[var(--paper)]">
+                  ▸ {l}
                 </li>
               ))}
             </ul>
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-5 py-28 sm:px-8">
-          <div className="grid items-end gap-12 lg:grid-cols-[1fr_1.1fr]">
-            <div>
-              <p className="eyebrow">Subjective minds</p>
-              <h2 className="font-display mt-5 text-[clamp(1.8rem,4vw,2.75rem)] font-semibold tracking-tight">
+        <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-8">
+          <div className="grid gap-4 lg:grid-cols-[1fr_1.1fr]">
+            <div className="px-panel p-5 sm:p-8">
+              <p className="eyebrow">Villager minds</p>
+              <h2 className="px-title mt-5 !text-[clamp(0.65rem,2vw,0.9rem)] !text-[var(--paper)]">
                 Buyers don’t roll dice. They weigh losses.
               </h2>
-              <p className="mt-4 text-lg leading-relaxed text-ink-soft">
+              <p className="px-body mt-4 px-muted">
                 Every synthetic person has loss aversion, status-quo bias, trust, anger, and memory.
-                They score options with prospect theory, then negotiate with your agent. Survive
-                their utilities — not a random chaos monkey.
+                Survive their utilities — not a random chaos monkey.
               </p>
             </div>
-            <ul className="space-y-4">
+            <ul className="px-panel space-y-0 p-4">
               {[
                 ["Prospect theory λ", "Losses loom larger than gains against each mind’s reference bill."],
                 ["Affect + memory", "Anger and old tickets tint every choice; loyalty can still hold."],
-                ["Negotiation", "Agent mitigations update trust — or fail to. Softmax under arousal still misfires."],
+                ["Negotiation", "Agent mitigations update trust — or fail to."],
               ].map(([t, d]) => (
-                <li key={t} className="border-b border-[var(--hairline)] pb-4">
-                  <p className="font-display text-lg font-semibold tracking-tight">{t}</p>
-                  <p className="mt-1 text-ink-soft">{d}</p>
+                <li key={t} className="px-list-row">
+                  <p className="font-pixel text-[0.5rem] text-[var(--amber)]">{t}</p>
+                  <p className="px-body mt-2 text-[1.05rem] px-muted">{d}</p>
                 </li>
               ))}
             </ul>
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-5 pb-32 sm:px-8">
+        <section className="mx-auto max-w-6xl px-4 pb-24 sm:px-8">
           <div className="shell">
-            <div className="shell-inner relative overflow-hidden px-6 py-14 sm:px-12 sm:py-16">
-              <div
-                className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full opacity-40"
-                style={{
-                  background: "radial-gradient(circle, color-mix(in oklab, var(--amber) 50%, transparent), transparent 70%)",
-                }}
-              />
+            <div className="shell-inner relative overflow-hidden px-5 py-10 sm:px-10 sm:py-12">
               <p className="eyebrow">Big vision</p>
-              <h2 className="font-display mt-5 max-w-2xl text-[clamp(1.9rem,4vw,3.25rem)] font-semibold leading-[1.05] tracking-tight">
-                Every serious codebase gets a town. Agents don’t just code in repos — they train in worlds.
+              <h2 className="px-title mt-5 max-w-2xl !text-[clamp(0.7rem,2.2vw,1rem)]">
+                Every serious codebase gets a town. Agents don’t just code in repos — they train in
+                worlds.
               </h2>
-              <div className="mt-10">
+              <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/connect" className="btn-island">
                   Found a town from your repo
                   <span className="orb">↗</span>
+                </Link>
+                <Link href="/sample" className="btn-ghost">
+                  Enter sample world
                 </Link>
               </div>
             </div>
@@ -204,10 +200,12 @@ export default function HomePage() {
         </section>
       </main>
 
-      <footer className="relative z-[2] border-t border-[var(--hairline)] px-5 py-10 sm:px-8">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-display text-sm font-semibold tracking-tight">Forktown</p>
-          <p className="text-sm text-ink-soft">where agents rehearse before they ship</p>
+      <footer className="relative z-[2] border-t-4 border-[var(--border)] bg-[var(--soil)] px-4 py-8 sm:px-8">
+        <div className="mx-auto flex max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="font-pixel text-[0.5rem] text-[var(--amber)]">◆ FORKTOWN</p>
+          <p className="font-pixel text-[0.4rem] text-[#bcaaa4]">
+            where agents rehearse before they ship
+          </p>
         </div>
       </footer>
     </>

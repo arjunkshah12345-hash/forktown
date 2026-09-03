@@ -11,55 +11,47 @@ export default async function TownsPage() {
   return (
     <>
       <SiteNav />
-      <main className="relative z-[2] mx-auto max-w-6xl flex-1 px-5 pb-24 pt-28 sm:px-8">
-        <div className="flex flex-wrap items-end justify-between gap-6">
+      <main className="relative z-[2] mx-auto max-w-6xl flex-1 px-4 pb-20 pt-6 sm:px-8">
+        <div className="px-panel flex flex-wrap items-end justify-between gap-6 p-5 sm:p-8">
           <div>
-            <p className="eyebrow">Municipal registry</p>
-            <h1 className="font-display mt-4 text-[clamp(2.2rem,5vw,3.5rem)] font-semibold tracking-tight">
-              Towns
-            </h1>
-            <p className="mt-3 max-w-xl text-lg text-ink-soft">
-              Towns founded from real GitHub repos. Connect a codebase to generate a living simulation.
+            <p className="eyebrow">Town registry</p>
+            <h1 className="px-title mt-4 !text-[clamp(0.75rem,2.5vw,1.05rem)]">TOWNS</h1>
+            <p className="px-body mt-3 max-w-xl px-muted">
+              Towns founded from real GitHub repos. Plant a codebase to grow a living simulation.
             </p>
           </div>
           <Link href="/connect" className="btn-island">
-            Connect GitHub repo
+            Plant GitHub repo
             <span className="orb">↗</span>
           </Link>
         </div>
 
-        <div className="mt-14 grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-4">
+        <div className="mt-4 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-3">
             {towns.length === 0 && (
-              <p className="text-ink-soft">No towns yet. Connect a repository to found the first one.</p>
+              <p className="px-panel p-5 px-body px-muted">
+                No towns yet. Plant a repository to found the first one.
+              </p>
             )}
             {towns.map((t) => {
               const ext = t as typeof t & { source?: string; repoUrl?: string | null };
               return (
-                <Link
-                  key={t.id}
-                  href={`/towns/${t.id}`}
-                  className="group block rounded-[1.5rem] border border-[var(--hairline)] bg-white/55 px-5 py-5 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:bg-white/80"
-                >
+                <Link key={t.id} href={`/towns/${t.id}`} className="group block px-panel p-5 hover:border-[var(--border-hi)]">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="font-display text-xl font-semibold tracking-tight group-hover:text-amber-deep">
+                        <h2 className="font-pixel text-[0.55rem] leading-relaxed text-[var(--paper)] group-hover:text-[var(--amber)]">
                           {t.name}
                         </h2>
-                        {ext.source && (
-                          <span className="font-mono rounded-full bg-ink/5 px-2 py-0.5 text-[10px] uppercase tracking-wider text-ink-soft">
-                            {ext.source}
-                          </span>
-                        )}
+                        {ext.source && <span className="px-chip">{ext.source}</span>}
                       </div>
-                      <p className="font-mono mt-1 text-xs text-ink-soft">{t.codebase}</p>
-                      <p className="mt-3 text-sm text-ink-soft">
-                        {t.world.customers.toLocaleString()} customers · {t.districts.length} districts · seed{" "}
-                        {t.seed}
+                      <p className="px-body mt-2 text-[1rem] px-muted">{t.codebase}</p>
+                      <p className="px-body mt-2 text-[1rem] px-muted">
+                        {t.world.customers.toLocaleString()} villagers · {t.districts.length} districts ·
+                        seed {t.seed}
                       </p>
                     </div>
-                    <span className="font-display text-sm text-ink-soft">Enter ↗</span>
+                    <span className="font-pixel text-[0.4rem] text-[var(--amber)]">Enter ↗</span>
                   </div>
                 </Link>
               );
@@ -67,10 +59,10 @@ export default async function TownsPage() {
           </div>
 
           <div className="shell h-fit">
-            <div className="shell-inner p-6 sm:p-8">
-              <h2 className="font-display text-xl font-semibold tracking-tight">Manual town</h2>
-              <p className="mt-2 text-sm text-ink-soft">
-                Prefer GitHub connect for real fingerprints. Manual is for named experiments.
+            <div className="shell-inner p-5 sm:p-8">
+              <h2 className="font-pixel text-[0.55rem] text-[var(--amber)]">Manual town</h2>
+              <p className="px-body mt-2 text-[1.05rem] px-muted">
+                Prefer GitHub plant for real fingerprints. Manual is for named experiments.
               </p>
               <div className="mt-6">
                 <CreateTownForm />
