@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import { getDb, schema } from "../db";
 import { ensureBootstrapKey } from "../db/keys";
 import { simulateRehearsal } from "./engine";
-import { generateAcmeBillingTown, generateTown } from "./world";
+import { generateTown } from "./world";
 import type {
   CreateTownInput,
   MigrationKind,
@@ -35,11 +35,14 @@ export async function ensureStarterTown(): Promise<TownWithMeta> {
   const existing = await getTown(STARTER_TOWN_SLUG);
   if (existing) return existing;
 
-  const town = generateAcmeBillingTown();
+  const town = generateTown({
+    name: "Acme Billing Town",
+    codebase: "github.com/acme/billing-platform",
+    customerCount: 12_000,
+    seed: "acme-billing-forktown-v1",
+  });
   town.id = STARTER_TOWN_SLUG;
   town.slug = STARTER_TOWN_SLUG;
-  town.name = "Acme Billing Town";
-  town.codebase = "github.com/acme/billing-platform";
   persistTown(town, {
     source: "starter",
     repoUrl: "https://github.com/acme/billing-platform",
@@ -48,7 +51,7 @@ export async function ensureStarterTown(): Promise<TownWithMeta> {
 }
 
 export async function listTowns(): Promise<Town[]> {
-  await ensureStarterTown();
+  await ensureBootstrapKey();
   const db = getDb();
   const rows = db.select().from(schema.towns).orderBy(desc(schema.towns.createdAt)).all();
   return rows.map(parseTown);
@@ -62,7 +65,9 @@ export async function getTown(id: string): Promise<ReturnType<typeof parseTown> 
     .from(schema.towns)
     .where(or(eq(schema.towns.id, id), eq(schema.towns.slug, id)))
     .get();
-  return row ? parseTown(row) : undefined;
+  if (row) return parseTown(row);
+  if (id === STARTER_TOWN_SLUG) return ensureStarterTown();
+  return undefined;
 }
 
 export async function createTown(input: CreateTownInput): Promise<Town> {
