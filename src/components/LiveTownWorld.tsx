@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { District, Actor, SyntheticUser, RehearsalRun, WorldSnapshot } from "@/lib/sim/types";
 import type { MigrationPlaybook } from "@/lib/github/playbook";
 import type { Mind } from "@/lib/sim/mind";
@@ -11,12 +12,26 @@ import { PixelDialogue } from "@/components/retro/PixelDialogue";
 import { PixelRehearseOverlay } from "@/components/retro/PixelRehearseOverlay";
 import { PixelHUD } from "@/components/retro/PixelHUD";
 import { PixelAchievement } from "@/components/retro/PixelAchievement";
+import { PixelCeremony } from "@/components/retro/PixelCeremony";
+import { PixelLiveTicker } from "@/components/retro/PixelLiveTicker";
 import { WarRoom } from "@/components/WarRoom";
 import { usePixelAudio } from "@/components/retro/usePixelAudio";
 import { districtsToPixel, townspeopleToNpcs, mindLines } from "@/lib/pixel-map";
 import { withBase } from "@/lib/paths";
 
 const SAVE_KEY = "forktown-play-v1";
+const COACH_KEY = "forktown-coach-v1";
+
+const REHEARSE_BEATS = [
+  "PREPARE · Forge dual-writes the legacy path…",
+  "CANARY · 5% of villagers hit the new barn…",
+  "CANARY · Mara K. smells a coupon ghost…",
+  "CUTOVER · Invoice Barn flips the flag…",
+  "STRESS · Ticket Cottage floods · anger rising…",
+  "STRESS · Red Team Tower probes the window…",
+  "RECOVERY · Agent negotiates with legacy buyers…",
+  "RECOVERY · Trust curve settling…",
+];
 
 type SaveBlob = {
   music?: boolean;
@@ -42,6 +57,14 @@ function writeSave(patch: SaveBlob) {
   localStorage.setItem(SAVE_KEY, JSON.stringify(next));
 }
 
+function portraitFor(speaker: string): string {
+  const s = speaker.toLowerCase();
+  if (s.includes("forge") || s.includes("agent")) return "agent";
+  if (s.includes("devon") || s.includes("sre")) return "sre";
+  if (s.includes("angry") || s.includes("mara")) return "angry";
+  return "buyer";
+}
+
 export function LiveTownWorld({
   townId,
   districts,
@@ -63,6 +86,7 @@ export function LiveTownWorld({
   world: WorldSnapshot;
   priorRuns?: number;
 }) {
+  const router = useRouter();
   const pixelDistricts = useMemo(() => districtsToPixel(districts), [districts]);
   const npcs = useMemo(
     () => townspeopleToNpcs(actors, users, pixelDistricts),
@@ -85,7 +109,7 @@ export function LiveTownWorld({
   const [intensity, setIntensity] = useState<1 | 2 | 3 | 4 | 5>(books[0]?.intensity ?? 3);
   const pb = books[Math.min(bookIdx, books.length - 1)] ?? books[0];
 
-  const lines = useMemo(() => {
+  const welcomeLines = useMemo(() => {
     const base = minds.length
       ? mindLines(minds)
       : [
@@ -105,6 +129,7 @@ export function LiveTownWorld({
     ];
   }, [minds, townName, world]);
 
+  const [dialogueLines, setDialogueLines] = useState(welcomeLines);
   const [selectedId, setSelectedId] = useState<string | null>(pixelDistricts[0]?.id ?? null);
   const [panelOpen, setPanelOpen] = useState(true);
   const [music, setMusic] = useState(false);
@@ -119,6 +144,7 @@ export function LiveTownWorld({
   const [pulseId, setPulseId] = useState<string | null>(null);
   const [run, setRun] = useState<RehearsalRun | null>(null);
   const [warOpen, setWarOpen] = useState(false);
+  const [ceremonyOpen, setCeremonyOpen] = useState(false);
   const [questOpen, setQuestOpen] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rain, setRain] = useState(false);
@@ -129,6 +155,13 @@ export function LiveTownWorld({
   const [questsDone, setQuestsDone] = useState<string[]>([]);
   const [achievement, setAchievement] = useState<{ title: string; subtitle: string } | null>(null);
   const [trustHistory, setTrustHistory] = useState<number[]>([55, 58, 56, 60, 57]);
+  const [beatIdx, setBeatIdx] = useState(0);
+  const [coach, setCoach] = useState(false);
+  const [combo, setCombo] = useState(0);
+
+  useEffect(() => {
+    setDialogueLines(welcomeLines);
+  }, [welcomeLines]);
 
   useEffect(() => {
     const s = loadSave();
@@ -137,6 +170,11 @@ export function LiveTownWorld({
     if (typeof s.level === "number") setLevel(s.level);
     if (typeof s.energy === "number") setEnergy(s.energy);
     if (s.quests) setQuestsDone(s.quests);
+    try {
+      if (localStorage.getItem(COACH_KEY) !== "1") setCoach(true);
+    } catch {
+      setCoach(true);
+    }
   }, [priorRuns]);
 
   useEffect(() => {
@@ -147,7 +185,7 @@ export function LiveTownWorld({
     writeSave({ music, xp, level, energy, quests: questsDone, lastRunId: run?.id });
   }, [music, xp, level, energy, questsDone, run?.id]);
 
-  const { blip, rehearseStart, rehearseEnd, thunder } = usePixelAudio(music);
+  const { blip, rehearseStart, rehearseEnd, thunder, levelUp } = usePixelAudio(music);
   const selected = pixelDistricts.find((d) => d.id === selectedId) ?? null;
 
   const meanTrust = world.meanTrust ?? 0.58;
@@ -161,6 +199,37 @@ export function LiveTownWorld({
     status: run?.status ?? "idle",
   };
 
+  const newsLines = useMemo(() => {
+    if (rehearsing) {
+      return REHEARSE_BEATS.map((b) => b.replace("Forge", "Forge").replace("Invoice Barn", pb.title));
+    }
+    const base = [
+      `${townName} · ${world.customers.toLocaleString()} villagers awake · ${dayPhase}`,
+      `Trust ${(meanTrust * 100).toFixed(0)}% · anger ${(meanAnger * 100).toFixed(0)}% · tickets ${world.activeTickets}`,
+      `Crop selected: ${pb.kind} · intensity ${intensity} · press R to rehearse`,
+      `Traffic ${world.trafficRps} rps · season ${season} · level ${level}`,
+    ];
+    if (run?.report) {
+      base.unshift(
+        `Last run · ${run.report.survived ? "SURVIVED" : "COLLAPSE"} · ${(run.report.overall * 100).toFixed(0)}%`,
+      );
+    }
+    return base;
+  }, [
+    rehearsing,
+    townName,
+    world,
+    dayPhase,
+    meanTrust,
+    meanAnger,
+    pb.kind,
+    pb.title,
+    intensity,
+    season,
+    level,
+    run,
+  ]);
+
   const unlock = useCallback((id: string, title: string, subtitle: string) => {
     setQuestsDone((prev) => {
       if (prev.includes(id)) return prev;
@@ -169,18 +238,31 @@ export function LiveTownWorld({
     });
   }, []);
 
+  const dismissCoach = useCallback(() => {
+    setCoach(false);
+    try {
+      localStorage.setItem(COACH_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   const runRehearse = useCallback(async () => {
     if (rehearsing) return;
     if (energy < 12) {
       setError("LOW ENERGY · wait for Forge to catch breath");
       return;
     }
+    dismissCoach();
     setError(null);
     setRehearsing(true);
     setProgress(4);
     setWarOpen(false);
+    setCeremonyOpen(false);
     setCelebrate(false);
     setRun(null);
+    setBeatIdx(0);
+    setCombo(0);
     setEnergy((e) => Math.max(0, e - 12 - intensity * 2));
     rehearseStart();
     setFlash(1);
@@ -190,6 +272,9 @@ export function LiveTownWorld({
 
     const tick = window.setInterval(() => {
       setProgress((p) => Math.min(92, p + 2 + intensity + Math.random() * 3));
+      setBeatIdx((b) => (b + 1) % REHEARSE_BEATS.length);
+      setCombo((c) => c + 1);
+      setShake((s) => Math.max(2, s - 0.4));
     }, 160);
 
     try {
@@ -212,10 +297,36 @@ export function LiveTownWorld({
       const nextRun = data.run as RehearsalRun;
       setRun(nextRun);
       const survived = Boolean(nextRun.report?.survived);
+
+      // Pull real dialogue into the town square
+      const fromRun = (nextRun.dialogue ?? [])
+        .slice(0, 8)
+        .map((d) => ({
+          speaker: d.name,
+          portrait: d.speaker === "agent" ? "agent" : portraitFor(d.name),
+          text: d.text,
+        }));
+      if (fromRun.length) {
+        setDialogueLines([
+          ...fromRun,
+          {
+            speaker: "Town crier",
+            portrait: "buyer",
+            text: survived
+              ? `Cutover held at ${((nextRun.report?.overall ?? 0) * 100).toFixed(0)}%. Open the war room.`
+              : `Town scarred. Survivability ${((nextRun.report?.overall ?? 0) * 100).toFixed(0)}%. Scrub the war room.`,
+          },
+        ]);
+        setFocusSpeaker(fromRun[0]?.speaker ?? null);
+        setFocusNonce((n) => n + 1);
+      }
+
       if (survived) {
         rehearseEnd();
         setCelebrate(true);
+        setRain(false);
         unlock(`survive-${pb.kind}`, "CUTOVER HELD", `${pb.kind} rehearsal survived`);
+        if (intensity >= 4) unlock("hard-mode", "HARD MODE", "Survived intensity 4+");
       } else {
         thunder();
         setRain(true);
@@ -224,7 +335,11 @@ export function LiveTownWorld({
       const gained = 20 + intensity * 8 + (survived ? 15 : 5);
       setXp((x) => {
         const total = x + gained;
-        setLevel(1 + Math.floor(total / 100));
+        const nextLevel = 1 + Math.floor(total / 100);
+        setLevel((prev) => {
+          if (nextLevel > prev) levelUp();
+          return nextLevel;
+        });
         return total;
       });
       if (nextRun.snapshots?.length) {
@@ -239,8 +354,8 @@ export function LiveTownWorld({
         setRehearsing(false);
         setFlash(0);
         setShake(0);
-        setWarOpen(true);
-      }, 650);
+        setCeremonyOpen(true);
+      }, 700);
     } catch (err) {
       clearInterval(tick);
       setRehearsing(false);
@@ -257,6 +372,7 @@ export function LiveTownWorld({
     rehearseStart,
     rehearseEnd,
     thunder,
+    levelUp,
     selectedId,
     pixelDistricts,
     townId,
@@ -264,16 +380,23 @@ export function LiveTownWorld({
     pb.title,
     pb.hypothesis,
     unlock,
+    dismissCoach,
   ]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === "m" || e.key === "M") setMusic((v) => !v);
       if (e.key === "r" || e.key === "R") void runRehearse();
       if (e.key === "q" || e.key === "Q") setQuestOpen((v) => !v);
+      if (e.key === "w" || e.key === "W") {
+        if (run) setWarOpen(true);
+      }
       if (e.key === "Escape") {
         setWarOpen(false);
+        setCeremonyOpen(false);
         setAchievement(null);
+        setCoach(false);
       }
       if (e.key >= "1" && e.key <= "5") {
         const i = Number(e.key) - 1;
@@ -285,12 +408,12 @@ export function LiveTownWorld({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [runRehearse, books, blip]);
+  }, [runRehearse, books, blip, run]);
 
   useEffect(() => {
     const id = window.setInterval(() => {
       setEnergy((e) => Math.min(100, e + 1));
-    }, 4000);
+    }, 3500);
     return () => clearInterval(id);
   }, []);
 
@@ -298,19 +421,24 @@ export function LiveTownWorld({
     { id: "first-rehearse", label: "Run a live rehearsal" },
     { id: "survive-billing", label: "Survive a billing cutover" },
     { id: "survive-auth", label: "Survive an auth cutover" },
+    { id: "hard-mode", label: "Survive intensity 4+" },
     { id: "scar-billing", label: "Take a billing scar (learn)" },
+    { id: "mitigate", label: "Offer dual-write to Mara" },
   ];
 
   return (
-    <div className="pixel-play">
+    <div className="pixel-play pixel-play-immersive">
       <div className="pixel-play-top">
         <div>
           <p className="font-pixel text-[0.42rem] text-[var(--px-gold)]">◆ {townName.toUpperCase()}</p>
           <p className="pixel-sub">
-            {dayPhase} · {season} · press R to rehearse · Q quests · 1–5 crops
+            {dayPhase} · {season} · R rehearse · W war · Q quests · 1–5 crops · M music
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link href="/" className="pixel-btn pixel-btn-ghost">
+            ← TOWN SQUARE
+          </Link>
           <button
             type="button"
             className={`pixel-btn ${music ? "pixel-btn-primary" : "pixel-btn-ghost"}`}
@@ -335,12 +463,22 @@ export function LiveTownWorld({
             </button>
           )}
           {run && (
-            <Link href={withBase(`/runs/${run.id}`)} className="pixel-btn pixel-btn-ghost">
+            <Link href={`/runs/${run.id}`} className="pixel-btn pixel-btn-ghost">
               REPORT
             </Link>
           )}
         </div>
       </div>
+
+      <PixelLiveTicker
+        lines={
+          rehearsing
+            ? [REHEARSE_BEATS[beatIdx] ?? REHEARSE_BEATS[0], ...newsLines]
+            : newsLines
+        }
+        badge={rehearsing ? "SIM" : "NEWS"}
+        intervalMs={rehearsing ? 900 : 3600}
+      />
 
       {error && (
         <p className="font-pixel text-[0.42rem] text-[var(--px-danger)] border-2 border-[var(--px-danger)] bg-[#3e1a16] px-3 py-2">
@@ -359,9 +497,10 @@ export function LiveTownWorld({
               shake={shake}
               rehearseFlash={flash}
               rain={rain || season === "FALL"}
+              ambientRain={intensity >= 5 && rehearsing}
               rehearseProgress={progress}
               celebrate={celebrate}
-              combo={celebrate ? 3 : 0}
+              combo={celebrate ? Math.max(3, combo) : rehearsing ? Math.floor(combo / 4) : 0}
               onSelect={(id) => {
                 setSelectedId(id);
                 setPanelOpen(true);
@@ -383,7 +522,41 @@ export function LiveTownWorld({
                 onFocusAgent={() => void runRehearse()}
               />
             )}
-            <PixelRehearseOverlay active={rehearsing} progress={progress} label={pb.title} />
+            <PixelRehearseOverlay
+              active={rehearsing}
+              progress={progress}
+              label={rehearsing ? (REHEARSE_BEATS[beatIdx] ?? pb.title) : pb.title}
+            />
+            {coach && !rehearsing && (
+              <div className="pixel-coach">
+                <p className="pixel-coach-title">HOW TO PLAY</p>
+                <ol>
+                  <li>Pick a crop (1–5) — billing, auth, data…</li>
+                  <li>Set intensity — higher = meaner villagers</li>
+                  <li>Press <kbd>R</kbd> — real sim engine runs</li>
+                  <li>Open war room — scrub the cutover</li>
+                </ol>
+                <button type="button" className="pixel-btn pixel-btn-primary" onClick={dismissCoach}>
+                  GOT IT · LET&apos;S GO
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="pixel-hotbar">
+            {[
+              ["1-5", "crops"],
+              ["R", "rehearse"],
+              ["W", "war"],
+              ["Q", "quests"],
+              ["M", "music"],
+              ["Esc", "close"],
+            ].map(([k, label]) => (
+              <span key={k} className="pixel-hotbar-item">
+                <span className="pixel-hotbar-key">{k}</span>
+                <span className="pixel-hotbar-label">{label}</span>
+              </span>
+            ))}
           </div>
 
           <div className="pixel-quest-rail">
@@ -428,7 +601,7 @@ export function LiveTownWorld({
 
           <div className="pixel-live-dialogue">
             <PixelDialogue
-              lines={lines}
+              lines={dialogueLines}
               focusSpeaker={focusSpeaker}
               focusNonce={focusNonce}
               onAdvance={() => blip()}
@@ -449,11 +622,9 @@ export function LiveTownWorld({
             season={season}
             xp={xp}
             level={level}
-            maraTrust={
-              Math.round(
-                (minds.find((m) => m.name.toLowerCase().includes("mara"))?.affect.trust ?? 0.42) * 100,
-              )
-            }
+            maraTrust={Math.round(
+              (minds.find((m) => m.name.toLowerCase().includes("mara"))?.affect.trust ?? 0.42) * 100,
+            )}
             energy={energy}
           />
           {questOpen && (
@@ -480,6 +651,21 @@ export function LiveTownWorld({
         />
       )}
 
+      {ceremonyOpen && run && (
+        <PixelCeremony
+          run={run}
+          onContinue={() => {
+            setCeremonyOpen(false);
+            setWarOpen(true);
+            blip();
+          }}
+          onReport={() => {
+            setCeremonyOpen(false);
+            router.push(`/runs/${run.id}`);
+          }}
+        />
+      )}
+
       {warOpen && run && (
         <div className="pixel-overlay" role="dialog" aria-modal>
           <div className="pixel-modal pixel-war-room pixel-real-war-modal">
@@ -489,7 +675,7 @@ export function LiveTownWorld({
                 {run.report ? `${(run.report.overall * 100).toFixed(0)}%` : ""}
               </h2>
               <div className="flex gap-2">
-                <Link href={withBase(`/runs/${run.id}`)} className="pixel-btn pixel-btn-primary">
+                <Link href={`/runs/${run.id}`} className="pixel-btn pixel-btn-primary">
                   FULL REPORT
                 </Link>
                 <button type="button" className="pixel-btn pixel-btn-ghost" onClick={() => setWarOpen(false)}>

@@ -2409,3 +2409,255 @@
   flex-direction: column;
   gap: 0.15rem;
 }
+
+/* ── Immersive town page ── */
+.pixel-town-page {
+  position: relative;
+  z-index: 2;
+  width: min(1440px, 100%);
+  margin: 0 auto;
+  padding: 0.65rem 0.75rem 2.5rem;
+}
+
+.pixel-play-immersive {
+  min-height: calc(100dvh - 1.2rem);
+}
+
+.pixel-play-immersive .pixel-play-scene {
+  min-height: 480px;
+  height: min(68dvh, 720px);
+}
+
+.pixel-live-ticker {
+  margin: 0;
+}
+
+.pixel-coach {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 12;
+  width: min(420px, 92%);
+  transform: translate(-50%, -50%);
+  padding: 1rem 1.1rem;
+  background: #1a120ce8;
+  border: 4px solid var(--px-gold);
+  box-shadow: 0 0 0 3px #1a120c, 0 12px 0 #0d0806;
+  animation: pixel-coach-in 0.35s ease-out;
+}
+
+@keyframes pixel-coach-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -42%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.pixel-coach-title {
+  font-family: var(--font-pixel);
+  font-size: 0.55rem;
+  color: var(--px-gold);
+  margin-bottom: 0.65rem;
+}
+
+.pixel-coach ol {
+  margin: 0 0 0.85rem;
+  padding-left: 1.1rem;
+  font-family: var(--font-retro);
+  font-size: 1.15rem;
+  color: #fff8e7;
+  line-height: 1.45;
+}
+
+.pixel-coach kbd {
+  font-family: var(--font-pixel);
+  font-size: 0.42rem;
+  color: var(--px-gold);
+  border: 2px solid var(--px-gold);
+  padding: 0.1rem 0.25rem;
+}
+
+.pixel-ceremony {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  background: rgba(10, 6, 4, 0.78);
+  backdrop-filter: blur(2px);
+  animation: pixel-fade-in 0.25s ease-out;
+}
+
+@keyframes pixel-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.pixel-ceremony-card {
+  width: min(520px, 94vw);
+  padding: 1.25rem 1.35rem 1.1rem;
+  border: 5px solid var(--px-border-hi);
+  background: linear-gradient(180deg, #2a1c14 0%, #1a120c 100%);
+  box-shadow: 0 0 0 4px #0d0806, 0 16px 0 #0d0806;
+  text-align: center;
+}
+
+.pixel-ceremony-card.ok {
+  border-color: var(--px-success);
+}
+
+.pixel-ceremony-card.bad {
+  border-color: var(--px-danger);
+}
+
+.pixel-ceremony-eyebrow {
+  font-family: var(--font-pixel);
+  font-size: 0.42rem;
+  color: var(--px-gold);
+  letter-spacing: 0.06em;
+}
+
+.pixel-ceremony-grade {
+  font-family: var(--font-pixel);
+  font-size: clamp(2.4rem, 12vw, 4.2rem);
+  line-height: 1;
+  margin: 0.55rem 0 0.2rem;
+  color: var(--px-gold);
+  text-shadow: 4px 4px 0 #0d0806;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.pixel-ceremony-grade.in {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.pixel-ceremony-card.ok .pixel-ceremony-grade {
+  color: var(--px-success);
+}
+
+.pixel-ceremony-card.bad .pixel-ceremony-grade {
+  color: var(--px-danger);
+}
+
+.pixel-ceremony-score,
+.pixel-ceremony-verdict {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: 0.3s ease-out;
+}
+
+.pixel-ceremony-score.in,
+.pixel-ceremony-verdict.in {
+  opacity: 1;
+  transform: none;
+}
+
+.pixel-ceremony-score {
+  font-family: var(--font-pixel);
+  font-size: 0.55rem;
+  color: #fff8e7;
+}
+
+.pixel-ceremony-verdict {
+  margin: 0.75rem auto 0;
+  max-width: 36ch;
+  font-family: var(--font-retro);
+  font-size: 1.2rem;
+  color: #d7ccc8;
+}
+
+.pixel-ceremony-near {
+  margin: 0.65rem auto 0;
+  max-width: 40ch;
+  padding: 0.45rem 0.6rem;
+  border: 2px solid var(--px-gold);
+  background: #3e2a10;
+  font-family: var(--font-retro);
+  font-size: 1.05rem;
+  color: #ffe082;
+}
+
+.pixel-ceremony-dims {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.35rem;
+  margin-top: 1rem;
+}
+
+.pixel-ceremony-dims div {
+  background: #241810;
+  border: 2px solid var(--px-border);
+  padding: 0.35rem 0.2rem;
+}
+
+.pixel-ceremony-dims span {
+  display: block;
+  font-family: var(--font-pixel);
+  font-size: 0.32rem;
+  color: #bcaaa4;
+  text-transform: uppercase;
+}
+
+.pixel-ceremony-dims strong {
+  display: block;
+  margin-top: 0.2rem;
+  font-family: var(--font-pixel);
+  font-size: 0.55rem;
+  color: var(--px-gold);
+}
+
+.pixel-ceremony-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.1rem;
+}
+
+.pixel-ledger {
+  margin-top: 1rem;
+  background: var(--px-panel);
+  border: 3px solid var(--px-border);
+  box-shadow: 0 3px 0 var(--px-shadow);
+}
+
+.pixel-ledger-sum {
+  cursor: pointer;
+  list-style: none;
+  padding: 0.7rem 0.9rem;
+  font-family: var(--font-pixel);
+  font-size: 0.42rem;
+  color: var(--px-gold);
+  user-select: none;
+}
+
+.pixel-ledger-sum::-webkit-details-marker {
+  display: none;
+}
+
+.pixel-ledger-body {
+  padding: 0 0.9rem 1rem;
+  border-top: 2px solid var(--px-border);
+}
+
+@media (max-width: 640px) {
+  .pixel-ceremony-dims {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .pixel-play-immersive .pixel-play-scene {
+    min-height: 360px;
+    height: min(52dvh, 480px);
+  }
+}

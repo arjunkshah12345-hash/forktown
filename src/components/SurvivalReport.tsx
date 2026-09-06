@@ -14,13 +14,29 @@ export function SurvivalReport({ run }: { run: RehearsalRun }) {
     );
   }
 
+  const letter =
+    report.overall >= 0.9
+      ? "S"
+      : report.overall >= 0.8
+        ? "A"
+        : report.overall >= 0.7
+          ? "B"
+          : report.overall >= 0.55
+            ? "C"
+            : report.overall >= 0.4
+              ? "D"
+              : "F";
+
   return (
     <section className="pixel-survival">
       <div className={`pixel-panel pixel-verdict ${report.survived ? "survived" : "collapsed"}`}>
         <p className="pixel-panel-title">{report.survived ? "★ TOWN HELD" : "☠ TOWN COLLAPSED"}</p>
-        <p className="font-pixel text-[1.25rem] text-[var(--px-gold)]">
-          {(report.overall * 100).toFixed(1)}%
-        </p>
+        <div className="mt-2 flex flex-wrap items-end gap-4">
+          <p className="font-pixel text-[2.4rem] leading-none text-[var(--px-gold)]">{letter}</p>
+          <p className="font-pixel text-[1.25rem] text-[var(--px-gold)]">
+            {(report.overall * 100).toFixed(1)}%
+          </p>
+        </div>
         <p className="mt-3 max-w-2xl font-retro text-[1.25rem] text-[#fff8e7]">{report.verdict}</p>
         <p className="mt-2 max-w-2xl font-retro text-[1.1rem] text-[#d7ccc8]">{report.recommendation}</p>
         {report.nearMiss && (

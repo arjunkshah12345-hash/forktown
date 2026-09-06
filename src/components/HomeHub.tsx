@@ -51,6 +51,11 @@ export function HomeHub() {
         setTimeout(() => {
           setEntered(true);
           setFade(false);
+          try {
+            localStorage.setItem("forktown-hub-entered", "1");
+          } catch {
+            /* ignore */
+          }
         }, 420);
       }
     };
@@ -93,11 +98,11 @@ export function HomeHub() {
             <span className="pixel-title-logo-accent">TOWN</span>
           </h1>
           <p className="pixel-title-tag">
-            Living voxel towns powered by the rehearsal engine — not a concept mock
+            SimCity for codebases — agents rehearse migrations in living voxel towns
           </p>
 
           <div className="pixel-title-features">
-            {["sim engine", "buyer minds", "war room", "github ingest"].map((t) => (
+            {["live engine", "buyer minds", "war room", "github towns"].map((t) => (
               <span key={t} className="pixel-title-chip">
                 {t}
               </span>
