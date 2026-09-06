@@ -1,385 +1,3 @@
-import { nanoid } from "nanoid";
-import type { RepoFingerprint } from "../github/fingerprint";
-import { agentCounterMove, applyCounterToMinds } from "./agent-counters";
-import {
-  detectTippingPoints,
-  hottestDistrict,
-  nearMissNote,
-  segmentPulses,
-} from "./analysis";
-import { buildCast, evaluateHypothesis } from "./quality";
-import {
-  applySocialContagion,
-  bumpWorldFromLayer,
-  openTicketFromDecision,
-  propagateDistrictStress,
-} from "./cascade";
-import { negotiate } from "./dialogue";
-import {
-  actorOptions,
-  applyMitigationToMind,
-  buyerOptions,
-  cohortStats,
-  decide,
-  hydrateMinds,
-  recordEpisodicMemory,
-  sampleActorsForTick,
-  type Mind,
-  type WorldStimulus,
-} from "./mind";
-import {
-  AGENT_NET_VERSION,
-  beliefPrior,
-  lookaheadValue,
-  MIND_ALPHA,
-  MIND_NET_VERSION,
-  planAgentMoves,
-  replanAgentMove,
-  updateBelief,
-} from "./neural";
-import { applyMitigationShield, mitigationCoverage, outageCap } from "./neural/mitigation-physics";
-import { WEIGHTS_V2 } from "./neural/weights-v2";
-import { createPrng, int, pick } from "./prng";
-import { phaseForTick, phaseLabel, scenarioBeat, type SimulationPhase } from "./scenarios";
-import type {
-  DialogueTurn,
-  District,
-  DistrictSnap,
-  MigrationKind,
-  PhaseSummary,
-  PressureEvent,
-  PressureLayer,
-  RehearsalPlan,
-  RehearsalRun,
-  ScenarioBeat,
-  SurvivalReport,
-  Town,
-  TrustCurvePoint,
-  WorldSnapshot,
-} from "./types";
-
-function cloneWorld(w: WorldSnapshot): WorldSnapshot {
-  return { ...w };
-}
-
-function disruptionFor(
-  kind: MigrationKind,
-  intensity: number,
-  world: WorldSnapshot,
-  fp?: RepoFingerprint | null,
-) {
-  const base = 0.15 + intensity * 0.08;
-  const outage = world.outagePercent / 100;
-  const byKind: Record<MigrationKind, WorldStimulus["disruption"]> = {
-    billing: {
-      continuity: base + 0.2,
-      money: base + 0.28,
-      fairness: base + 0.18,
-      safety: base + 0.08 + outage,
-      control: base + 0.12,
-    },
-    auth: {
-      continuity: base + 0.25,
-      money: base + 0.05,
-      fairness: base + 0.1,
-      safety: base + 0.3 + outage,
-      control: base + 0.22,
-    },
-    database: {
-      continuity: base + 0.3,
-      money: base + 0.12,
-      fairness: base + 0.08,
-      safety: base + 0.25 + outage,
-      control: base + 0.15,
-    },
-    framework: {
-      continuity: base + 0.18,
-      money: base + 0.05,
-      fairness: base + 0.05,
-      safety: base + 0.2 + outage,
-      control: base + 0.1,
-    },
-    api_version: {
-      continuity: base + 0.22,
-      money: base + 0.1,
-      fairness: base + 0.12,
-      safety: base + 0.15 + outage,
-      control: base + 0.2,
-    },
-  };
-  const d = byKind[kind];
-  if (fp?.hasStripe) {
-    d.money = Math.min(1, d.money + 0.08);
-    d.fairness = Math.min(1, d.fairness + 0.06);
-  }
-  if (fp?.hasWebhooks) d.continuity = Math.min(1, d.continuity + 0.1);
-  if (fp?.hasAuth && kind === "auth") d.safety = Math.min(1, d.safety + 0.08);
-  if (fp?.hasMigrations && kind === "database") d.continuity = Math.min(1, d.continuity + 0.1);
-  if (world.legacyContracts > 40) {
-    d.continuity = Math.min(1, d.continuity + 0.06);
-    d.money = Math.min(1, d.money + 0.05);
-  }
-  return d;
-}
-
-function applyDecisionImpact(
-  world: WorldSnapshot,
-  layer: PressureLayer,
-  magnitude: number,
-  intensity: number,
-  optionId: string,
-): WorldSnapshot {
-  const next = cloneWorld(world);
-  const v = magnitude * (0.55 + intensity * 0.12);
-
-  switch (layer) {
-    case "traffic":
-      next.trafficRps = Math.round(next.trafficRps * (1 + v * 0.25));
-      break;
-    case "support":
-      next.activeTickets = Math.round(next.activeTickets + v * 10);
-      if (optionId === "escalate") next.activeIncidents += 1;
-      break;
-    case "finance":
-      next.revenueAtRisk = Math.round(next.revenueAtRisk * (1 + v * 0.28));
-      if (optionId === "churn" || optionId === "threaten_churn") {
-        next.revenueAtRisk = Math.round(next.revenueAtRisk * (1 + v * 0.2));
-      }
-      if (optionId === "block_close") next.activeIncidents += 1;
-      break;
-    case "security":
-      next.activeIncidents += 1;
-      next.outagePercent = Math.min(48, +(next.outagePercent + v * 2.2).toFixed(1));
-      break;
-    case "sre":
-      next.activeIncidents += 1;
-      next.outagePercent = Math.min(48, +(next.outagePercent + v * 3.5).toFixed(1));
-      break;
-    case "product":
-      next.activeTickets = Math.round(next.activeTickets + v * 5);
-      break;
-    case "legacy":
-      next.legacyContracts = Math.round(next.legacyContracts * (1 + v * 0.08));
-      next.revenueAtRisk = Math.round(next.revenueAtRisk * (1 + v * 0.18));
-      break;
-    case "infra":
-      next.outagePercent = Math.min(50, +(next.outagePercent + v * 4).toFixed(1));
-      next.trafficRps = Math.round(next.trafficRps * (1 - v * 0.12));
-      break;
-  }
-
-  // Calm choices slightly heal
-  if (optionId === "ignore" || optionId === "wait_and_see" || optionId === "approve" || optionId === "watch" || optionId === "hold_scope") {
-    next.outagePercent = Math.max(0, +(next.outagePercent - 0.4).toFixed(1));
-  }
-
-  next.tick += 1;
-  return next;
-}
-
-function judge(
-  plan: RehearsalPlan,
-  town: Town,
-  events: PressureEvent[],
-  final: WorldSnapshot,
-  agentActions: string[],
-  minds: Mind[],
-  trustCurve: TrustCurvePoint[],
-  scenarioBeats: ScenarioBeat[],
-  counterMoves: string[],
-  neuralTelemetry: SurvivalReport["neural"],
-): SurvivalReport {
-  const layers: PressureLayer[] = [
-    "traffic",
-    "support",
-    "finance",
-    "security",
-    "sre",
-    "product",
-    "legacy",
-    "infra",
-  ];
-
-  const layerHits: Record<PressureLayer, number> = Object.fromEntries(
-    layers.map((l) => [l, 0]),
-  ) as Record<PressureLayer, number>;
-  for (const e of events) {
-    for (const [k, v] of Object.entries(e.impact)) {
-      layerHits[k as PressureLayer] += v ?? 0;
-    }
-  }
-
-  const stats = cohortStats(minds);
-  const allMoves = [...agentActions, ...counterMoves];
-  const moveBlob = allMoves.join(" ").toLowerCase();
-  const cov = mitigationCoverage(plan.kind, allMoves);
-  // Skill from planned mitigations — counter-spam must not dominate
-  const skill = Math.min(1, (agentActions.length * 0.7 + Math.min(3, counterMoves.length) * 0.25) / 5);
-  const intensityPenalty = plan.intensity * 0.028;
-  const trustBonus = (stats.meanTrust - 0.42) * 0.4;
-  const angerPenalty = stats.meanAnger * 0.24;
-  const churnPenalty = Math.min(0.28, stats.churnReady / 28);
-  const outagePenalty = Math.min(0.28, final.outagePercent / 100);
-  const coverageBonus = cov * 0.14;
-  const coverageGapPenalty = (1 - cov) * 0.16;
-
-  const dimensions = layers.map((layer) => {
-    const hit = layerHits[layer];
-    const base = 0.92 - hit * 0.085 - intensityPenalty;
-    const rescue = skill * 0.18 + trustBonus + coverageBonus;
-    let score = base + rescue - angerPenalty * 0.35 - coverageGapPenalty * 0.5;
-    if (layer === "finance") {
-      score -= churnPenalty;
-      if ((plan.kind === "billing" || plan.kind === "database") && !/dual-write/.test(moveBlob)) {
-        score -= 0.14;
-      }
-    }
-    if (layer === "legacy") {
-      score -= Math.min(0.18, town.world.legacyContracts / 110);
-      if (!/dual-write|legacy|preserve/.test(moveBlob)) score -= 0.08;
-    }
-    if (layer === "support") score -= stats.meanAnger * 0.12;
-    if (layer === "sre") {
-      if (/kill-switch|rollback/.test(moveBlob)) score += 0.08;
-      else score -= 0.1;
-    }
-    if (layer === "security") {
-      if (/idempotency/.test(moveBlob)) score += 0.08;
-      else if (plan.kind === "billing" || plan.kind === "api_version") score -= 0.12;
-    }
-    score = Math.max(0.05, Math.min(0.99, score));
-    const note =
-      score > 0.75
-        ? "Minds stayed below action threshold"
-        : score > 0.5
-          ? "Subjective strain — recoverable"
-          : "Cohort utilities flipped hostile";
-    return { layer, score: +score.toFixed(3), note };
-  });
-
-  const overall =
-    dimensions.reduce((s, d) => s + d.score, 0) / dimensions.length -
-    outagePenalty * 0.3 -
-    churnPenalty * 0.35 +
-    coverageBonus * 0.35 -
-    coverageGapPenalty;
-  const overallClamped = +Math.max(0, Math.min(1, overall)).toFixed(3);
-
-  const cascadingFailures: string[] = [];
-  if (final.outagePercent > 12) cascadingFailures.push("Outage bleed into checkout path");
-  if (final.activeTickets > town.world.activeTickets * 2.2)
-    cascadingFailures.push("Support queue runaway from angry minds");
-  if (final.revenueAtRisk > town.world.revenueAtRisk * 1.8)
-    cascadingFailures.push("Finance close at risk — money-loss aversion fired");
-  if (stats.churnReady >= 8) cascadingFailures.push("Churn-intent cluster (anger↑ trust↓)");
-  if (stats.meanTrust < 0.32) cascadingFailures.push("Town-wide trust below reference");
-  if (dimensions.find((d) => d.layer === "security")!.score < 0.5)
-    cascadingFailures.push("Attacker utilities found an open surface");
-
-  const decisiveMoments = events
-    .filter((e) => e.decision && e.decision.utility > 0.35)
-    .slice(0, 8)
-    .map((e) => e.decision!.rationale);
-
-  const phaseSummaries: PhaseSummary[] = (["prepare", "canary", "cutover", "stress", "recovery"] as SimulationPhase[]).map(
-    (phase) => {
-      const pts = trustCurve.filter((p) => p.phase === phase);
-      const phaseEvents = events.filter((e) => e.phase === phase).length;
-      const trustStart = pts[0]?.meanTrust ?? trustCurve[0]?.meanTrust ?? 0;
-      const trustEnd = pts[pts.length - 1]?.meanTrust ?? trustStart;
-      return {
-        phase,
-        events: phaseEvents,
-        trustStart: +trustStart.toFixed(3),
-        trustEnd: +trustEnd.toFixed(3),
-        trustDelta: +(trustEnd - trustStart).toFixed(3),
-      };
-    },
-  );
-
-  const survived = overallClamped >= 0.58 && cascadingFailures.length <= 3 && stats.meanTrust >= 0.26;
-
-  const stressPhase = phaseSummaries.find((p) => p.phase === "stress");
-  const recoveryPhase = phaseSummaries.find((p) => p.phase === "recovery");
-  const trustRecovered = recoveryPhase && stressPhase ? recoveryPhase.trustEnd >= stressPhase.trustEnd - 0.05 : true;
-
-  const tippingPoints = detectTippingPoints(trustCurve);
-  const segments = segmentPulses(minds);
-  const hot = hottestDistrict(events);
-  const draft = {
-    survived: survived && trustRecovered,
-    overall: overallClamped,
-    cascadingFailures,
-  };
-  const nearMiss = nearMissNote(draft);
-  const hypothesis = evaluateHypothesis(plan.kind, plan.hypothesis, allMoves, {
-    survived: draft.survived,
-    overall: overallClamped,
-    cascadingFailures,
-    subjective: {
-      meanTrust: +stats.meanTrust.toFixed(3),
-      meanAnger: +stats.meanAnger.toFixed(3),
-      churnReady: stats.churnReady,
-      decisiveMoments,
-    },
-  });
-  const cast = buildCast(events, minds);
-  const fidelity = +Math.min(
-    1,
-    0.32 +
-      Math.min(0.22, events.filter((e) => e.kind === "scenario").length * 0.05) +
-      Math.min(0.18, (trustCurve.length / 24) * 0.18) +
-      Math.min(0.12, cast.length * 0.02) +
-      (counterMoves.length ? 0.05 : 0) +
-      hypothesis.coverage * 0.1 +
-      (neuralTelemetry ? 0.08 : 0) +
-      Math.min(0.06, (neuralTelemetry?.decisions ?? 0) / 80),
-  ).toFixed(3);
-
-  return {
-    survived: survived && trustRecovered,
-    overall: overallClamped,
-    dimensions,
-    cascadingFailures,
-    agentActions: allMoves.slice(0, agentActions.length + 4),
-    verdict: survived
-      ? trustRecovered
-        ? "Subjective town held. Mind-net utilities stayed shippable — canary + kill-switch."
-        : "Town survived outage but trust did not recover in-window — extend canary."
-      : "Subjective town collapsed. Mind-net + prospect utilities went hostile.",
-    recommendation: survived
-      ? trustRecovered
-        ? "Promote behind a 5% canary. Keep dual-write one billing cycle. Watch trust + churn-intent pulse."
-        : "Hold at 25% cohort. Add read-repair + finance contract tests before full cutover."
-      : hypothesis.missing.length
-        ? `Add missing mitigations (${hypothesis.missing.slice(0, 3).join(", ")}) and re-run colder.`
-        : "Address the decisive moments below — especially loss-averse buyers and finance reference points — then re-run colder.",
-    subjective: {
-      meanTrust: +stats.meanTrust.toFixed(3),
-      meanAnger: +stats.meanAnger.toFixed(3),
-      churnReady: stats.churnReady,
-      decisiveMoments,
-    },
-    trustCurve,
-    phaseSummaries,
-    scenarioBeats,
-    tippingPoints,
-    segments,
-    nearMiss,
-    hottestDistrictId: hot?.districtId ?? null,
-    counterMoves,
-    hypothesis,
-    cast,
-    fidelity,
-    neural: neuralTelemetry,
-  };
-}
-
-function optionsFor(mind: Mind, stim: WorldStimulus) {
-  if (mind.role === "buyer") return buyerOptions(mind, stim);
-  return actorOptions(mind, stim);
-}
-
 export function simulateRehearsal(
   town: Town,
   plan: RehearsalPlan,
@@ -395,7 +13,9 @@ export function simulateRehearsal(
 ): RehearsalRun {
   const fp = opts?.fingerprint ?? null;
   const ticks = opts?.ticks ?? 20 + plan.intensity * 4;
-  const rng = createPrng(town.seed ^ hashString(plan.id) ^ 0x53454e53);
+  const rng = createPrng(
+    town.seed ^ hashString(plan.id) ^ 0x53454e53 ^ (opts?.forcedMitigations?.length ?? 0) * 13,
+  );
   const maxBuyers = Math.min(town.users.length, opts?.maxBuyers ?? 90 + plan.intensity * 12);
   const minds = hydrateMinds(town.users, town.actors, town.seed, { maxBuyers });
   const beliefs = new Map(minds.map((m) => [m.id, beliefPrior(m)]));
@@ -770,6 +390,10 @@ export function simulateRehearsal(
     .slice(0, 8)
     .map(([feature, weight]) => ({ feature, weight: +weight.toFixed(4) }));
 
+  const { WEIGHTS_V2 } = require("./neural/weights-v2") as typeof import("./neural/weights-v2");
+
+  const { WEIGHTS_V2 } = require("./neural/weights-v2") as typeof import("./neural/weights-v2");
+
   const neuralTelemetry: SurvivalReport["neural"] = {
     mindPolicy: MIND_NET_VERSION,
     agentPolicy: AGENT_NET_VERSION,
@@ -809,45 +433,33 @@ export function simulateRehearsal(
   );
 
   if (!opts?.skipCounterfactuals && !opts?.forcedMitigations) {
-    // Controlled A/B: same ticks, same seed, forced mitigations only —
-    // isolates mitigation causality from adaptive replan noise.
-    const fullForced = simulateRehearsal(town, plan, {
-      ticks,
-      fingerprint: fp,
-      forcedMitigations: agentActions,
-      skipCounterfactuals: true,
-      maxBuyers,
-    });
     const ablations: Array<{ id: string; re: RegExp }> = [
       { id: "no-dual-write", re: /dual-write/i },
       { id: "no-kill-switch", re: /kill-switch|rollback/i },
       { id: "no-idempotency", re: /idempotency/i },
     ];
     const cfs: NonNullable<SurvivalReport["counterfactuals"]> = [];
-    const baseOverall = fullForced.report?.overall ?? report.overall;
     for (const a of ablations) {
       const forced = agentActions.filter((m) => !a.re.test(m));
       if (forced.length === agentActions.length) continue;
       const cf = simulateRehearsal(town, plan, {
-        ticks,
+        ticks: Math.max(12, Math.floor(ticks * 0.5)),
         fingerprint: fp,
         forcedMitigations: forced,
         skipCounterfactuals: true,
-        maxBuyers,
+        maxBuyers: Math.min(48, maxBuyers),
       });
       cfs.push({
         ablation: a.id,
         survived: Boolean(cf.report?.survived),
         overall: cf.report?.overall ?? 0,
-        delta: +((cf.report?.overall ?? 0) - baseOverall).toFixed(3),
+        delta: +((cf.report?.overall ?? 0) - report.overall).toFixed(3),
       });
     }
     report.counterfactuals = cfs;
     if (cfs.length) {
       liveLog.push(
-        `Counterfactuals (vs forced-full ${(baseOverall * 100).toFixed(0)}%): ${cfs
-          .map((c) => `${c.ablation} Δ=${(c.delta * 100).toFixed(1)}pts`)
-          .join(" · ")}`,
+        `Counterfactuals: ${cfs.map((c) => `${c.ablation} Δ=${(c.delta * 100).toFixed(1)}pts`).join(" · ")}`,
       );
     }
   }
@@ -889,29 +501,4 @@ export function simulateRehearsal(
     dialogue: allDialogue,
     districtSnaps,
   };
-}
-
-
-function layerToDistrict(layer: PressureLayer): Town["districts"][0]["kind"] {
-  const map: Record<PressureLayer, Town["districts"][0]["kind"]> = {
-    traffic: "api",
-    support: "support",
-    finance: "finance",
-    security: "security",
-    sre: "edge",
-    product: "billing",
-    legacy: "data",
-    infra: "api",
-  };
-  return map[layer];
-}
-
-function truncate(s: string, n: number) {
-  return s.length <= n ? s : s.slice(0, n - 1) + "…";
-}
-
-function hashString(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
-  return h >>> 0;
 }

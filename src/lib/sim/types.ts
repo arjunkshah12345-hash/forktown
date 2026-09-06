@@ -247,7 +247,16 @@ export interface SurvivalReport {
     agentMovesRanked: Array<{ move: string; score: number }>;
     replans: number;
     beliefFinal: { meanExpectedTrust: number; meanPSurvive: number };
+    mitigationCoverage?: number;
+    weights?: { mindR2?: number; agentR2?: number; version?: string };
   };
+  /** Ablation counterfactuals — weapon-grade causality check */
+  counterfactuals?: Array<{
+    ablation: string;
+    survived: boolean;
+    overall: number;
+    delta: number;
+  }>;
 }
 
 export interface Town {

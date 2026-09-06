@@ -1,9 +1,6 @@
 /**
- * Forktown Agent Policy Net (ft-agent-v1)
- *
- * Scores mitigation moves given world + fingerprint + migration kind.
- * Mid-run replan: when trust crashes or outage spikes, re-rank and inject
- * the highest-EV counterfactual move.
+ * Forktown Agent Policy Net (ft-agent-v2)
+ * Trained offline via scripts/train-neural.ts — ranks mitigations by crisis EV.
  */
 
 import type { RepoFingerprint } from "../../github/fingerprint";
@@ -12,12 +9,14 @@ import {
   attributeInput,
   buildMlp,
   forward,
+  loadMlp,
   softmax,
   vec,
   type MlpWeights,
 } from "./mlp";
+import { WEIGHTS_V2 } from "./weights-v2";
 
-export const AGENT_NET_VERSION = "ft-agent-v1";
+export const AGENT_NET_VERSION = "ft-agent-v2";
 
 const IN_DIM = 28;
 
@@ -119,26 +118,15 @@ let cached: MlpWeights | null = null;
 
 function agentNet(): MlpWeights {
   if (cached) return cached;
-  cached = buildMlp(
-    { name: "agent-policy", version: AGENT_NET_VERSION, sizes: [IN_DIM, 48, 24, 1] },
-    0x41474e54, // 'AGNT'
-    0.5,
-  );
-  const L0 = cached.layers[0]!;
-  const boost = (col: number, mag: number) => {
-    for (let r = 0; r < L0.out; r++) L0.W[r * L0.in + col]! += mag * (1 - (r % 2) * 2);
-  };
-  // High outage → prefer kill-switch moves
-  boost(0, 0.25);
-  boost(23, 0.3);
-  // Low trust → dual-write / flags
-  boost(3, -0.2);
-  boost(21, 0.28);
-  boost(24, 0.22);
-  // Stripe / webhooks → idempotency
-  boost(13, 0.2);
-  boost(14, 0.18);
-  boost(22, 0.3);
+  try {
+    cached = loadMlp([...WEIGHTS_V2.agentSizes], WEIGHTS_V2.agent as unknown as number[][][]);
+  } catch {
+    cached = buildMlp(
+      { name: "agent-policy", version: AGENT_NET_VERSION, sizes: [IN_DIM, 48, 24, 1] },
+      0x41474e54,
+      0.5,
+    );
+  }
   return cached;
 }
 
@@ -206,14 +194,17 @@ function heuristicBoost(move: string, ctx: AgentPlanContext): number {
   const m = move.toLowerCase();
   let s = 0;
   const w = ctx.world;
-  if (w.outagePercent > 8 && /kill-switch|rollback|brake/.test(m)) s += 0.55;
-  if ((w.meanTrust ?? 1) < 0.45 && /dual-write|shadow|legacy/.test(m)) s += 0.4;
-  if ((w.churnIntent ?? 0) > 5 && /cohort|flag|holdout|scrub/.test(m)) s += 0.35;
-  if (ctx.fp?.hasStripe && /idempotency|dual-write|finance/.test(m)) s += 0.45;
-  if (ctx.fp?.hasWebhooks && /idempotency|shadow|quarantine/.test(m)) s += 0.4;
-  if (ctx.kind === "auth" && /session|shadow|cookie|mfa/.test(m)) s += 0.35;
-  if (ctx.kind === "database" && /backfill|expand|lock|read-repair/.test(m)) s += 0.4;
-  if (ctx.intensity >= 4 && /kill-switch|error-budget|quarantine/.test(m)) s += 0.25;
+  // Core mitigations dominate vanity preserves
+  if (/dual-write/.test(m)) s += 0.55 + (1 - (w.meanTrust ?? 0.5)) * 0.35;
+  if (/idempotency/.test(m)) s += 0.5 + ((ctx.fp?.hasStripe || ctx.fp?.hasWebhooks) ? 0.35 : 0.1);
+  if (/kill-switch|rollback|brake/.test(m)) s += 0.5 + Math.min(0.55, w.outagePercent / 20);
+  if (/feature-flag|cohort|canary/.test(m)) s += 0.35;
+  if (/shadow/.test(m)) s += 0.3;
+  if (/legacy|preserve/.test(m)) s += 0.12; // useful, never top by default
+  if ((w.churnIntent ?? 0) > 5 && /cohort|flag|holdout|scrub/.test(m)) s += 0.25;
+  if (ctx.kind === "auth" && /session|shadow|cookie|mfa/.test(m)) s += 0.3;
+  if (ctx.kind === "database" && /backfill|expand|lock|read-repair/.test(m)) s += 0.35;
+  if (ctx.intensity >= 4 && /kill-switch|error-budget|quarantine|dual-write/.test(m)) s += 0.2;
   return s;
 }
 
@@ -235,7 +226,7 @@ export function planAgentMoves(
   const scored = bank.map((move) => {
     const input = encode(ctx, move);
     const { out } = forward(net, input);
-    const score = out[0]! + heuristicBoost(move, ctx) + rng() * 0.08;
+    const score = out[0]! + heuristicBoost(move, ctx) + rng() * 0.02;
     return { move, score, input };
   });
   scored.sort((a, b) => b.score - a.score);

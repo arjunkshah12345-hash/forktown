@@ -187,6 +187,10 @@ export function SurvivalReport({ run }: { run: RehearsalRun }) {
           <p className="pixel-panel-title">NEURAL POLICY · WEAPON LAYER</p>
           <p className="font-pixel text-[0.38rem] text-[#bcaaa4]">
             {report.neural.mindPolicy} · {report.neural.agentPolicy} · α={report.neural.alpha}
+            {report.neural.weights?.version ? ` · weights ${report.neural.weights.version}` : ""}
+            {report.neural.weights?.mindR2 != null
+              ? ` · R² mind ${report.neural.weights.mindR2} / agent ${report.neural.weights.agentR2}`
+              : ""}
           </p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {[
@@ -195,9 +199,9 @@ export function SurvivalReport({ run }: { run: RehearsalRun }) {
               ["EU↔net gap", report.neural.meanProspectGap.toFixed(3)],
               ["Agent plan q", report.neural.agentPlanScore.toFixed(3)],
               ["Replans", String(report.neural.replans)],
+              ["Mitigation cov", `${((report.neural.mitigationCoverage ?? 0) * 100).toFixed(0)}%`],
               ["Belief trust", `${(report.neural.beliefFinal.meanExpectedTrust * 100).toFixed(0)}%`],
               ["Belief p(survive)", report.neural.beliefFinal.meanPSurvive.toFixed(3)],
-              ["Fidelity", report.fidelity != null ? `${(report.fidelity * 100).toFixed(0)}%` : "—"],
             ].map(([k, v]) => (
               <div key={k} className="px-stat">
                 <p className="k">{k}</p>
@@ -229,6 +233,33 @@ export function SurvivalReport({ run }: { run: RehearsalRun }) {
               </ul>
             </div>
           )}
+        </div>
+      )}
+
+      {report.counterfactuals && report.counterfactuals.length > 0 && (
+        <div className="mt-3 px-panel p-5">
+          <p className="pixel-panel-title">COUNTERFACTUAL ABLATIONS</p>
+          <p className="mt-1 font-retro text-[1.05rem] text-[#bcaaa4]">
+            Controlled A/B — same ticks and seed, forced mitigations only. Negative Δ means that
+            mitigation was load-bearing.
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            {report.counterfactuals.map((c) => (
+              <div key={c.ablation} className="px-stat">
+                <p className="k">{c.ablation}</p>
+                <p className="v">
+                  {(c.overall * 100).toFixed(0)}%{" "}
+                  <span className={c.delta < 0 ? "text-[var(--px-danger)]" : "text-[var(--px-success)]"}>
+                    {c.delta >= 0 ? "+" : ""}
+                    {(c.delta * 100).toFixed(1)}
+                  </span>
+                </p>
+                <p className="mt-1 font-pixel text-[0.35rem] uppercase text-[#bcaaa4]">
+                  {c.survived ? "survived" : "collapsed"}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

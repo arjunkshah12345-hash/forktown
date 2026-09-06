@@ -1,10 +1,9 @@
 /**
- * Tiny pure-TS MLP — no deps. Deterministic matmul + ReLU + tanh.
- * Used as the cognitive substrate for mind + agent policies.
+ * Tiny pure-TS MLP — forward + backprop. Deterministic. No deps.
  */
 
 export type Vec = Float64Array;
-export type Mat = Float64Array; // row-major [rows * cols]
+export type Mat = Float64Array;
 
 export function vec(n: number, fill = 0): Vec {
   const v = new Float64Array(n);
@@ -16,7 +15,6 @@ export function mat(rows: number, cols: number): Mat {
   return new Float64Array(rows * cols);
 }
 
-/** Seeded LCG → weights in [-scale, scale] */
 export function initMat(rows: number, cols: number, seed: number, scale = 0.35): Mat {
   const m = mat(rows, cols);
   let s = seed >>> 0 || 1;
@@ -41,20 +39,12 @@ export function relu(x: number): number {
   return x > 0 ? x : 0;
 }
 
-export function tanh(x: number): number {
-  if (x > 8) return 1;
-  if (x < -8) return -1;
-  const e = Math.exp(2 * x);
-  return (e - 1) / (e + 1);
-}
-
 export function sigmoid(x: number): number {
   if (x > 12) return 1;
   if (x < -12) return 0;
   return 1 / (1 + Math.exp(-x));
 }
 
-/** y = Wx + b */
 export function affine(out: Vec, W: Mat, x: Vec, b: Vec, rows: number, cols: number) {
   for (let r = 0; r < rows; r++) {
     let s = b[r]!;
@@ -66,10 +56,6 @@ export function affine(out: Vec, W: Mat, x: Vec, b: Vec, rows: number, cols: num
 
 export function applyRelu(v: Vec) {
   for (let i = 0; i < v.length; i++) v[i] = relu(v[i]!);
-}
-
-export function applyTanh(v: Vec) {
-  for (let i = 0; i < v.length; i++) v[i] = tanh(v[i]!);
 }
 
 export function softmax(logits: number[]): number[] {
@@ -93,17 +79,10 @@ export function argmax(vals: number[]): number {
   return best;
 }
 
-/** Dot product of two equal-length arrays */
-export function dot(a: ArrayLike<number>, b: ArrayLike<number>): number {
-  let s = 0;
-  for (let i = 0; i < a.length; i++) s += (a[i] ?? 0) * (b[i] ?? 0);
-  return s;
-}
-
 export interface MlpSpec {
   name: string;
   version: string;
-  sizes: number[]; // [in, h1, h2, ..., out]
+  sizes: number[];
 }
 
 export interface MlpWeights {
@@ -125,11 +104,38 @@ export function buildMlp(spec: MlpSpec, seed: number, scale = 0.32): MlpWeights 
   return { layers };
 }
 
-/** Forward pass; returns output vector + hidden activations for attribution */
-export function forward(
-  net: MlpWeights,
-  input: Vec,
-): { out: Vec; hiddens: Vec[] } {
+export function cloneMlp(net: MlpWeights): MlpWeights {
+  return {
+    layers: net.layers.map((l) => ({
+      W: new Float64Array(l.W),
+      b: new Float64Array(l.b),
+      in: l.in,
+      out: l.out,
+    })),
+  };
+}
+
+export function serializeMlp(net: MlpWeights): number[][][] {
+  return net.layers.map((l) => [Array.from(l.W), Array.from(l.b)]);
+}
+
+export function loadMlp(sizes: number[], data: number[][][]): MlpWeights {
+  const layers: MlpWeights["layers"] = [];
+  for (let i = 0; i < sizes.length - 1; i++) {
+    const inn = sizes[i]!;
+    const out = sizes[i + 1]!;
+    const [W, b] = data[i]!;
+    layers.push({
+      W: Float64Array.from(W!),
+      b: Float64Array.from(b!),
+      in: inn,
+      out,
+    });
+  }
+  return { layers };
+}
+
+export function forward(net: MlpWeights, input: Vec): { out: Vec; hiddens: Vec[] } {
   let x = input;
   const hiddens: Vec[] = [];
   for (let i = 0; i < net.layers.length; i++) {
@@ -145,9 +151,66 @@ export function forward(
 }
 
 /**
- * Feature attribution via input×|first-layer column sum| heuristic —
- * cheap, deterministic, readable in reports.
+ * One SGD step: MSE on scalar output. Returns loss.
+ * Activations: input → relu hiddens → linear out
  */
+export function trainStep(
+  net: MlpWeights,
+  input: Vec,
+  target: number,
+  lr: number,
+): number {
+  const n = net.layers.length;
+  const pre: Vec[] = [];
+  const post: Vec[] = [];
+  let x: Vec = input;
+  for (let i = 0; i < n; i++) {
+    const layer = net.layers[i]!;
+    const z = vec(layer.out);
+    affine(z, layer.W, x, layer.b, layer.out, layer.in);
+    pre.push(z);
+    const a = new Float64Array(z);
+    if (i < n - 1) applyRelu(a);
+    post.push(a);
+    x = a;
+  }
+  const pred = post[n - 1]![0]!;
+  const err = pred - target;
+  const loss = 0.5 * err * err;
+
+  // deltas
+  const deltas: Vec[] = new Array(n);
+  deltas[n - 1] = vec(net.layers[n - 1]!.out);
+  deltas[n - 1]![0] = err;
+
+  for (let i = n - 2; i >= 0; i--) {
+    const layer = net.layers[i + 1]!;
+    const d = vec(net.layers[i]!.out);
+    for (let c = 0; c < layer.in; c++) {
+      let s = 0;
+      for (let r = 0; r < layer.out; r++) s += layer.W[r * layer.in + c]! * deltas[i + 1]![r]!;
+      d[c] = pre[i]![c]! > 0 ? s : 0;
+    }
+    deltas[i] = d;
+  }
+
+  // update
+  let prevAct: Vec = input;
+  for (let i = 0; i < n; i++) {
+    const layer = net.layers[i]!;
+    const d = deltas[i]!;
+    for (let r = 0; r < layer.out; r++) {
+      layer.b[r]! -= lr * d[r]!;
+      const row = r * layer.in;
+      for (let c = 0; c < layer.in; c++) {
+        layer.W[row + c]! -= lr * d[r]! * prevAct[c]!;
+      }
+    }
+    prevAct = post[i]!;
+  }
+  return loss;
+}
+
 export function attributeInput(
   net: MlpWeights,
   input: Vec,

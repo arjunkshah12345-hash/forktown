@@ -1,12 +1,7 @@
 /**
- * Forktown Mind Policy Net (ft-mind-v1)
- *
- * Hybrid cognitive model:
- *   U = α · prospectEU + (1-α) · neuralLogit
- *
- * Neural half is a 48→64→32→1 MLP over mind+world+option features.
- * Domain priors are baked into seeded weights + residual shaping so the
- * net behaves like a calibrated behavioral policy, not random noise.
+ * Forktown Mind Policy Net (ft-mind-v2)
+ * Hybrid: U = α · prospectEU + (1-α) · neuralLogit
+ * Weights from scripts/train-neural.ts (SGD on behavioral oracle).
  */
 
 import type { DecisionOption, Mind, WorldStimulus } from "../mind";
@@ -15,14 +10,16 @@ import {
   buildMlp,
   entropy,
   forward,
+  loadMlp,
   sigmoid,
   softmax,
   vec,
   type MlpWeights,
 } from "./mlp";
+import { WEIGHTS_V2 } from "./weights-v2";
 
-export const MIND_NET_VERSION = "ft-mind-v1";
-export const MIND_ALPHA = 0.52; // prospect share; neural = 1 - α
+export const MIND_NET_VERSION = "ft-mind-v2";
+export const MIND_ALPHA = 0.48;
 
 const STATE_DIM = 40;
 const OPTION_DIM = 12;
@@ -95,32 +92,15 @@ let cachedNet: MlpWeights | null = null;
 
 function mindNet(): MlpWeights {
   if (cachedNet) return cachedNet;
-  // Seed chosen so domain-shaped residuals dominate; not random chaos.
-  cachedNet = buildMlp(
-    { name: "mind-policy", version: MIND_NET_VERSION, sizes: [INPUT_DIM, 64, 32, 1] },
-    0x4d494e44, // 'MIND'
-    0.55,
-  );
-  // Inject domain priors into first-layer columns (hand-tuned "trained" directions)
-  const L0 = cachedNet.layers[0]!;
-  const boost = (col: number, sign: number, mag = 0.18) => {
-    for (let r = 0; r < L0.out; r++) {
-      L0.W[r * L0.in + col]! += sign * mag * ((r % 3) - 1);
-    }
-  };
-  // Anger / low trust → hostile
-  boost(11, 1, 0.22); // anger
-  boost(10, -1, 0.2); // trust
-  boost(12, 1, 0.14); // anxiety
-  // Status quo / loyalty → passive
-  boost(2, 1, 0.16);
-  boost(6, 1, 0.14);
-  // Money disruption → finance hostility
-  boost(26, 1, 0.18);
-  // Mitigations calm
-  boost(35, -1, 0.2);
-  boost(36, -1, 0.16);
-  boost(37, -1, 0.18);
+  try {
+    cachedNet = loadMlp([...WEIGHTS_V2.mindSizes], WEIGHTS_V2.mind as unknown as number[][][]);
+  } catch {
+    cachedNet = buildMlp(
+      { name: "mind-policy", version: MIND_NET_VERSION, sizes: [INPUT_DIM, 64, 32, 1] },
+      0x4d494e44,
+      0.55,
+    );
+  }
   return cachedNet;
 }
 

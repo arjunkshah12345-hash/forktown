@@ -89,6 +89,11 @@ assert(runA.report!.neural!.agentPolicy.includes("ft-agent"), "agent net version
 assert(runA.report!.neural!.decisions > 10, "neural scored decisions");
 assert(runA.liveLog.some((l) => l.includes("ft-mind") || l.includes("Agent policy")), "neural in live log");
 assert(Boolean(d1.neural?.version.includes("ft-mind")), "decide attaches neural diagnostics");
+assert((runA.report!.counterfactuals?.length ?? 0) >= 1, "counterfactual ablations present");
+assert(
+  runA.report!.counterfactuals!.some((c) => c.ablation === "no-dual-write" && c.delta <= 0),
+  "removing dual-write does not improve survivability",
+);
 
 console.log("\nSample run:", {
   status: runA.status,
