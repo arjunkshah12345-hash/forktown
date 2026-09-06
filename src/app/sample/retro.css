@@ -2276,3 +2276,136 @@
 .pixel-hotbar-label {
   font-size: 0.36rem;
 }
+
+/* ── Immersive play layout ── */
+.pixel-play {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.pixel-play-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.55rem 0.7rem;
+  background: var(--px-panel);
+  border: 4px solid var(--px-border-hi);
+  box-shadow: inset 0 0 0 2px var(--px-shadow), 0 4px 0 var(--px-shadow);
+}
+
+.pixel-play-grid {
+  display: grid;
+  gap: 0.65rem;
+}
+
+@media (min-width: 1100px) {
+  .pixel-play-grid {
+    grid-template-columns: 1fr 230px;
+    align-items: start;
+  }
+}
+
+.pixel-play-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.pixel-play-scene {
+  min-height: 420px;
+  height: min(62dvh, 640px);
+}
+
+.pixel-play-side .pixel-hud {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.pixel-quest-rail {
+  background: var(--px-panel);
+  border: 3px solid var(--px-border);
+  box-shadow: 0 3px 0 var(--px-shadow);
+  padding: 0.65rem;
+}
+
+.pixel-quest-books {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.45rem 0 0.75rem;
+}
+
+@media (min-width: 700px) {
+  .pixel-quest-books {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.pixel-quest-book {
+  display: flex;
+  gap: 0.55rem;
+  text-align: left;
+  padding: 0.45rem;
+  background: var(--px-panel-hi);
+  border: 2px solid var(--px-border);
+  color: var(--px-cream);
+  cursor: pointer;
+}
+
+.pixel-quest-book.active,
+.pixel-quest-book:hover {
+  border-color: var(--px-gold);
+  color: var(--px-gold);
+}
+
+.pixel-quest-book-n {
+  font-family: var(--font-pixel);
+  font-size: 0.42rem;
+  color: var(--px-gold);
+}
+
+.pixel-quest-book-t {
+  display: block;
+  font-family: var(--font-pixel);
+  font-size: 0.42rem;
+  text-transform: uppercase;
+}
+
+.pixel-quest-book-d {
+  display: block;
+  margin-top: 0.2rem;
+  font-family: var(--font-retro);
+  font-size: 1rem;
+  color: #d7ccc8;
+}
+
+.pixel-intensity-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.pixel-quest-list {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  font-family: var(--font-pixel);
+  font-size: 0.38rem;
+  line-height: 1.7;
+  color: #d7ccc8;
+}
+
+.pixel-quest-list li.done {
+  color: var(--px-success);
+  text-decoration: line-through;
+}
+
+.pixel-survival {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}

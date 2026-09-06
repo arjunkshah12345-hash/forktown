@@ -32,8 +32,13 @@ function parseTown(row: typeof schema.towns.$inferSelect): TownWithMeta {
 /** Always-available real sim town (not a fake UI demo). */
 export async function ensureStarterTown(): Promise<TownWithMeta> {
   await ensureBootstrapKey();
-  const existing = await getTown(STARTER_TOWN_SLUG);
-  if (existing) return existing;
+  const db = getDb();
+  const existing = db
+    .select()
+    .from(schema.towns)
+    .where(or(eq(schema.towns.id, STARTER_TOWN_SLUG), eq(schema.towns.slug, STARTER_TOWN_SLUG)))
+    .get();
+  if (existing) return parseTown(existing);
 
   const town = generateTown({
     name: "Acme Billing Town",
@@ -49,11 +54,21 @@ export async function ensureStarterTown(): Promise<TownWithMeta> {
     source: "starter",
     repoUrl: "https://github.com/acme/billing-platform",
   });
-  return (await getTown(STARTER_TOWN_SLUG))!;
+  const row = db
+    .select()
+    .from(schema.towns)
+    .where(eq(schema.towns.id, STARTER_TOWN_SLUG))
+    .get();
+  return parseTown(row!);
 }
 
 export async function listTowns(): Promise<Town[]> {
   await ensureBootstrapKey();
+  try {
+    await ensureStarterTown();
+  } catch {
+    // Starter seed is best-effort — never block the registry.
+  }
   const db = getDb();
   const rows = db.select().from(schema.towns).orderBy(desc(schema.towns.createdAt)).all();
   return rows.map(parseTown);

@@ -83,6 +83,55 @@ export function primaryPlaybook(fp: RepoFingerprint | null | undefined): Migrati
   return playbookForKind(fp, kind);
 }
 
-export function allPlaybooks(fp: RepoFingerprint): MigrationPlaybook[] {
-  return fp.suggestedMigrations.map((kind) => playbookForKind(fp, kind));
+export function allPlaybooks(fp: RepoFingerprint | null | undefined): MigrationPlaybook[] {
+  if (!fp) return defaultPlaybooks();
+  const suggested = fp.suggestedMigrations.length
+    ? fp.suggestedMigrations
+    : (["billing", "auth", "database", "framework", "api_version"] as MigrationKind[]);
+  return Array.from(new Set(suggested)).map((kind) => playbookForKind(fp, kind));
+}
+
+export function defaultPlaybooks(): MigrationPlaybook[] {
+  return [
+    {
+      kind: "billing",
+      title: "Stripe Checkout → custom invoices",
+      hypothesis:
+        "Dual-write invoices + idempotent webhooks + legacy coupon flags survive finance close and angry buyers.",
+      intensity: 3,
+      rationale: "Default billing quest — money paths raise loss aversion first.",
+    },
+    {
+      kind: "auth",
+      title: "Auth provider cutover",
+      hypothesis:
+        "Shadow tokens + phased cohort rollout preserve sessions; kill-switch on auth errors before trust collapses.",
+      intensity: 3,
+      rationale: "Session continuity is the reference point buyers defend.",
+    },
+    {
+      kind: "database",
+      title: "Online schema migration",
+      hypothesis:
+        "Expand/contract with checkpointed backfill and read-repair; no lock held long enough to page SRE.",
+      intensity: 3,
+      rationale: "Legacy data contracts love to explode mid-cutover.",
+    },
+    {
+      kind: "framework",
+      title: "Framework/runtime upgrade",
+      hypothesis:
+        "Compat layer + feature-flagged routes; canary on error budget with rollback before PM narrative breaks.",
+      intensity: 3,
+      rationale: "Product and SRE minds weigh schedule vs safety.",
+    },
+    {
+      kind: "api_version",
+      title: "Public API v1 → v2 with shadow traffic",
+      hypothesis:
+        "Shadow compare on write paths + deprecation window; webhook consumers get dual delivery until trust recovers.",
+      intensity: 3,
+      rationale: "Downstream clients amplify subjective anger.",
+    },
+  ];
 }

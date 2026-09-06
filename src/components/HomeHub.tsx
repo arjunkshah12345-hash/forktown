@@ -22,6 +22,15 @@ export function HomeHub() {
   const { blip } = usePixelAudio(music);
 
   useEffect(() => {
+    try {
+      const seen = localStorage.getItem("forktown-hub-entered");
+      if (seen === "1") setEntered(true);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
     const id = setInterval(() => setBlink((b) => !b), 550);
     return () => clearInterval(id);
   }, []);
