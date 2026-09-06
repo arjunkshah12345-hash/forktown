@@ -6,14 +6,21 @@
  * - affect (trust, anger, anxiety, arousal)
  * - episodic memory (salient billing moments)
  * - a reference point (what “normal” feels like)
+ * - neural policy (ft-mind-v1 MLP) blended with prospect EU
  *
  * Options are scored with Kahneman–Tversky value + probability weighting,
- * then chosen via softmax whose temperature rises with arousal/impulsivity.
- * The log explains *why* that mind picked that act.
+ * then refined by the mind-policy net and chosen via softmax whose
+ * temperature rises with arousal/impulsivity.
  */
 
 import { createPrng, int, pick } from "./prng";
 import { clamp01 } from "./mind-utils";
+import {
+  MIND_ALPHA,
+  MIND_NET_VERSION,
+  neuralSoftmaxPick,
+  scoreOptionsNeural,
+} from "./neural/mind-net";
 import type { Actor, ActorKind, MigrationKind, PressureLayer, SyntheticUser } from "./types";
 
 export interface Personality {
@@ -95,6 +102,15 @@ export interface SubjectiveDecision {
   rationale: string;
   affectAfter: Pick<Affect, "trust" | "anger" | "anxiety">;
   magnitude: number;
+  /** Neural policy diagnostics */
+  neural?: {
+    version: string;
+    alpha: number;
+    prospectEu: number;
+    neuralLogit: number;
+    entropy: number;
+    topFeatures: Array<{ feature: string; weight: number }>;
+  };
 }
 
 export interface WorldStimulus {
@@ -259,54 +275,83 @@ export function decide(
   stim: WorldStimulus,
   rng: () => number,
 ): SubjectiveDecision {
-  const scored = options.map((option) => ({
+  const prospect = options.map((option) => scoreOption(mind, option, stim));
+  const { scores: neuralScores, neural } = scoreOptionsNeural(mind, options, stim, prospect);
+
+  const scored = options.map((option, i) => ({
     option,
-    utility: scoreOption(mind, option, stim),
+    utility: neuralScores[i]!,
+    prospectEu: prospect[i]!,
   }));
   scored.sort((a, b) => b.utility - a.utility);
 
   const temperature =
-    0.15 +
-    mind.personality.impulsivity * 0.55 +
-    mind.affect.arousal * 0.5 +
-    (1 - mind.personality.conscientiousness) * 0.2;
+    0.12 +
+    mind.personality.impulsivity * 0.5 +
+    mind.affect.arousal * 0.45 +
+    (1 - mind.personality.conscientiousness) * 0.18;
 
-  const picked = softmaxPick(scored, temperature, rng);
+  const pickIdx = neuralSoftmaxPick(
+    options.map((_, i) => neuralScores[i]!),
+    temperature,
+    rng,
+  );
+  const pickedOpt = options[pickIdx]!;
+  const pickedU = neuralScores[pickIdx]!;
+  const pickedProspect = prospect[pickIdx]!;
+
   const runner =
-    scored.find((s) => s.option.id !== picked.option.id) ??
-    scored[1];
+    scored.find((s) => s.option.id !== pickedOpt.id) ?? scored[1];
 
-  const affectAfter = applyAffectFromChoice(mind, picked.option);
+  const affectAfter = applyAffectFromChoice(mind, pickedOpt);
   mind.affect = affectAfter;
 
-  // magnitude from |utility| gap and intensity
-  const gap = runner ? Math.abs(picked.utility - runner.utility) : Math.abs(picked.utility);
+  const gap = runner ? Math.abs(pickedU - runner.utility) : Math.abs(pickedU);
   const magnitude = clamp01(0.2 + gap * 0.35 + stim.intensity * 0.06 + mind.affect.arousal * 0.2);
+
+  const featBit = neural.topFeatures
+    .slice(0, 3)
+    .map((f) => f.feature)
+    .join(", ");
+
+  const rationale =
+    buildRationale(
+      mind,
+      pickedOpt,
+      pickedU,
+      runner ? { label: runner.option.label, utility: runner.utility } : undefined,
+      stim,
+    ) +
+    ` [${MIND_NET_VERSION} α=${MIND_ALPHA} · prospect ${pickedProspect.toFixed(2)} · H=${neural.entropy}` +
+    (featBit ? ` · driven by ${featBit}` : "") +
+    "]";
 
   return {
     mindId: mind.id,
     mindName: mind.name,
     role: mind.role,
-    optionId: picked.option.id,
-    label: picked.option.label,
-    layer: picked.option.layer,
-    utility: +picked.utility.toFixed(3),
+    optionId: pickedOpt.id,
+    label: pickedOpt.label,
+    layer: pickedOpt.layer,
+    utility: +pickedU.toFixed(3),
     runnerUp: runner
       ? { label: runner.option.label, utility: +runner.utility.toFixed(3) }
       : undefined,
-    rationale: buildRationale(
-      mind,
-      picked.option,
-      picked.utility,
-      runner ? { label: runner.option.label, utility: runner.utility } : undefined,
-      stim,
-    ),
+    rationale,
     affectAfter: {
       trust: +affectAfter.trust.toFixed(3),
       anger: +affectAfter.anger.toFixed(3),
       anxiety: +affectAfter.anxiety.toFixed(3),
     },
     magnitude,
+    neural: {
+      version: MIND_NET_VERSION,
+      alpha: MIND_ALPHA,
+      prospectEu: +pickedProspect.toFixed(4),
+      neuralLogit: neural.logit,
+      entropy: neural.entropy,
+      topFeatures: neural.topFeatures,
+    },
   };
 }
 
@@ -720,13 +765,18 @@ export function actorOptions(mind: Mind, stim: WorldStimulus): DecisionOption[] 
   }
 }
 
-export function hydrateMinds(users: SyntheticUser[], actors: Actor[], seed: number): Mind[] {
+export function hydrateMinds(
+  users: SyntheticUser[],
+  actors: Actor[],
+  seed: number,
+  opts?: { maxBuyers?: number },
+): Mind[] {
   const rng = createPrng(seed ^ 0x4d494e44);
   const minds: Mind[] = [];
-  // Cap buyer minds simulated deeply; rest are represented statistically
-  const sample = users.slice(0, Math.min(users.length, 80));
+  // Deep sample — more minds = denser subjective pressure (weapon-grade fidelity)
+  const cap = opts?.maxBuyers ?? Math.min(users.length, 140);
+  const sample = users.slice(0, cap);
   for (const u of sample) {
-    // Clone so rehearsals never mutate the town's stored minds
     const base = u.mind ?? inventBuyerMind(u, rng);
     minds.push(cloneMind(base));
   }

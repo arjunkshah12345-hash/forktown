@@ -83,12 +83,25 @@ assert((runA.report!.cast?.length ?? 0) >= 1, "decisive cast present");
 assert((runA.report!.fidelity ?? 0) >= 0.4, "fidelity floor");
 assert(runA.districtSnaps!.length === runA.ticks, "district snaps per tick");
 assert(runA.liveLog.some((l) => l.includes("──")), "phase headers in log");
+assert(!!runA.report!.neural, "neural telemetry present");
+assert(runA.report!.neural!.mindPolicy.includes("ft-mind"), "mind net version");
+assert(runA.report!.neural!.agentPolicy.includes("ft-agent"), "agent net version");
+assert(runA.report!.neural!.decisions > 10, "neural scored decisions");
+assert(runA.liveLog.some((l) => l.includes("ft-mind") || l.includes("Agent policy")), "neural in live log");
+assert(Boolean(d1.neural?.version.includes("ft-mind")), "decide attaches neural diagnostics");
 
 console.log("\nSample run:", {
   status: runA.status,
   overall: runA.report!.overall,
   hypothesis: runA.report!.hypothesis?.status,
   fidelity: runA.report!.fidelity,
+  neural: {
+    decisions: runA.report!.neural?.decisions,
+    entropy: runA.report!.neural?.meanPolicyEntropy,
+    planScore: runA.report!.neural?.agentPlanScore,
+    replans: runA.report!.neural?.replans,
+    belief: runA.report!.neural?.beliefFinal,
+  },
   events: runA.events.length,
   cast: runA.report!.cast?.map((c) => c.name),
 });

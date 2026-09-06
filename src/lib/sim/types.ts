@@ -114,6 +114,14 @@ export interface SubjectiveDecisionRef {
   runnerUp?: { label: string; utility: number };
   rationale: string;
   affectAfter: { trust: number; anger: number; anxiety: number };
+  neural?: {
+    version: string;
+    alpha: number;
+    prospectEu: number;
+    neuralLogit: number;
+    entropy: number;
+    topFeatures: Array<{ feature: string; weight: number }>;
+  };
 }
 
 export interface DialogueTurn {
@@ -226,6 +234,20 @@ export interface SurvivalReport {
     memory?: string;
   }>;
   fidelity?: number;
+  /** Neural policy telemetry — mind net + agent net */
+  neural?: {
+    mindPolicy: string;
+    agentPolicy: string;
+    alpha: number;
+    decisions: number;
+    meanPolicyEntropy: number;
+    meanProspectGap: number;
+    topFeatures: Array<{ feature: string; weight: number }>;
+    agentPlanScore: number;
+    agentMovesRanked: Array<{ move: string; score: number }>;
+    replans: number;
+    beliefFinal: { meanExpectedTrust: number; meanPSurvive: number };
+  };
 }
 
 export interface Town {

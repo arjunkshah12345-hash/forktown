@@ -182,6 +182,56 @@ export function SurvivalReport({ run }: { run: RehearsalRun }) {
         </div>
       )}
 
+      {report.neural && (
+        <div className="mt-3 px-panel p-5">
+          <p className="pixel-panel-title">NEURAL POLICY · WEAPON LAYER</p>
+          <p className="font-pixel text-[0.38rem] text-[#bcaaa4]">
+            {report.neural.mindPolicy} · {report.neural.agentPolicy} · α={report.neural.alpha}
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ["Decisions", String(report.neural.decisions)],
+              ["Policy entropy", report.neural.meanPolicyEntropy.toFixed(3)],
+              ["EU↔net gap", report.neural.meanProspectGap.toFixed(3)],
+              ["Agent plan q", report.neural.agentPlanScore.toFixed(3)],
+              ["Replans", String(report.neural.replans)],
+              ["Belief trust", `${(report.neural.beliefFinal.meanExpectedTrust * 100).toFixed(0)}%`],
+              ["Belief p(survive)", report.neural.beliefFinal.meanPSurvive.toFixed(3)],
+              ["Fidelity", report.fidelity != null ? `${(report.fidelity * 100).toFixed(0)}%` : "—"],
+            ].map(([k, v]) => (
+              <div key={k} className="px-stat">
+                <p className="k">{k}</p>
+                <p className="v">{v}</p>
+              </div>
+            ))}
+          </div>
+          {report.neural.topFeatures.length > 0 && (
+            <div className="mt-3">
+              <p className="font-pixel text-[0.38rem] uppercase text-[var(--px-gold)]">Top drivers</p>
+              <ul className="mt-2">
+                {report.neural.topFeatures.slice(0, 6).map((f) => (
+                  <li key={f.feature} className="font-retro text-[1.05rem] text-[#d7ccc8]">
+                    {f.feature} · {f.weight.toFixed(3)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {report.neural.agentMovesRanked.length > 0 && (
+            <div className="mt-3">
+              <p className="font-pixel text-[0.38rem] uppercase text-[var(--px-gold)]">Agent net ranking</p>
+              <ul className="mt-2">
+                {report.neural.agentMovesRanked.slice(0, 5).map((m) => (
+                  <li key={m.move} className="font-pixel text-[0.4rem] leading-relaxed text-[var(--px-cream)]">
+                    q={m.score.toFixed(2)} · {m.move}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="mt-3 px-panel p-5">
         <p className="pixel-panel-title">AGENT MOVES</p>
         <ul className="mt-2">

@@ -3,6 +3,7 @@ export * from "./prng";
 export * from "./mind";
 export { negotiate } from "./dialogue";
 export * from "./world";
+export * from "./neural";
 export * from "./engine";
 export * from "./store";
 export { phaseForTick, phaseLabel, scenarioBeat } from "./scenarios";

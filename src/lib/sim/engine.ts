@@ -27,6 +27,16 @@ import {
   type Mind,
   type WorldStimulus,
 } from "./mind";
+import {
+  AGENT_NET_VERSION,
+  beliefPrior,
+  lookaheadValue,
+  MIND_ALPHA,
+  MIND_NET_VERSION,
+  planAgentMoves,
+  replanAgentMove,
+  updateBelief,
+} from "./neural";
 import { createPrng, int, pick } from "./prng";
 import { phaseForTick, phaseLabel, scenarioBeat, type SimulationPhase } from "./scenarios";
 import type {
@@ -46,100 +56,8 @@ import type {
   WorldSnapshot,
 } from "./types";
 
-const AGENT_MOVES: Record<MigrationKind, string[]> = {
-  billing: [
-    "Dual-write old + new path with shadow compare",
-    "Feature-flag cohort: 5% → 25% → 100%",
-    "Backfill job with checkpoint + resume",
-    "Idempotency keys on all money mutations",
-    "Read-repair for mismatched ledger rows",
-    "Kill-switch rollback to previous adapter",
-    "Contract tests against synthetic finance close",
-    "Preserve legacy bug behind explicit opt-in flag",
-  ],
-  auth: [
-    "Shadow-issue tokens beside sessions",
-    "Feature-flag cohort: 5% → 25% → 100%",
-    "Idempotency on session revoke",
-    "Kill-switch rollback to previous adapter",
-    "Preserve legacy cookie path behind flag",
-    "Contract tests for MFA edge cases",
-    "Read-repair for orphaned sessions",
-    "Backfill job with checkpoint + resume",
-  ],
-  database: [
-    "Dual-write old + new path with shadow compare",
-    "Online backfill with checkpoint + resume",
-    "Expand/contract schema steps",
-    "Kill-switch rollback to previous adapter",
-    "Read-repair for mismatched rows",
-    "Lock-timeout budgets + retry",
-    "Feature-flag cohort reads",
-    "Contract tests against synthetic finance close",
-  ],
-  framework: [
-    "Feature-flag cohort: 5% → 25% → 100%",
-    "Kill-switch rollback to previous adapter",
-    "Compat layer for deprecated APIs",
-    "Contract tests for render paths",
-    "Canary with error-budget brake",
-    "Shadow traffic compare",
-    "Preserve legacy bug behind explicit opt-in flag",
-    "Idempotency keys on all money mutations",
-  ],
-  api_version: [
-    "Shadow traffic to v2",
-    "Feature-flag cohort: 5% → 25% → 100%",
-    "Idempotency keys on all money mutations",
-    "Kill-switch rollback to previous adapter",
-    "Contract tests for client SDKs",
-    "Deprecation warnings before hard cut",
-    "Read-repair for mismatched ledger rows",
-    "Preserve legacy plan ID still accepted",
-  ],
-};
-
 function cloneWorld(w: WorldSnapshot): WorldSnapshot {
   return { ...w };
-}
-
-function scoreAgentMove(move: string, kind: MigrationKind, fp?: RepoFingerprint | null): number {
-  const m = move.toLowerCase();
-  let score = 0.35;
-  if (kind === "billing") {
-    if (/dual-write|idempotency|finance|read-repair|legacy/i.test(m)) score += 0.35;
-    if (fp?.hasStripe && /idempotency|dual-write/i.test(m)) score += 0.2;
-    if (fp?.hasWebhooks && /idempotency|shadow/i.test(m)) score += 0.15;
-  }
-  if (kind === "auth") {
-    if (/shadow|session|kill-switch|flag|mfa/i.test(m)) score += 0.35;
-    if (fp?.hasClerk || fp?.hasNextAuth) score += /shadow|cookie/i.test(m) ? 0.15 : 0;
-  }
-  if (kind === "database") {
-    if (/backfill|expand|checkpoint|read-repair|lock/i.test(m)) score += 0.35;
-    if (fp?.hasPrisma || fp?.hasDrizzle) score += /expand|backfill/i.test(m) ? 0.15 : 0;
-  }
-  if (kind === "framework" && /flag|canary|compat|rollback/i.test(m)) score += 0.3;
-  if (kind === "api_version" && /shadow|deprec|idempotency|flag/i.test(m)) score += 0.3;
-  if (/kill-switch|feature-flag/i.test(m)) score += 0.12;
-  return score;
-}
-
-function selectAgentMoves(
-  kind: MigrationKind,
-  fp: RepoFingerprint | null | undefined,
-  rng: () => number,
-): string[] {
-  const pool = AGENT_MOVES[kind];
-  const ranked = pool
-    .map((move) => ({ move, score: scoreAgentMove(move, kind, fp) + rng() * 0.25 }))
-    .sort((a, b) => b.score - a.score);
-  const count = 4 + Math.floor(rng() * 3);
-  const picks = ranked.slice(0, count).map((r) => r.move);
-  // Ensure at least one high-value mitigation
-  const top = ranked[0]?.move;
-  if (top && !picks.includes(top)) picks[picks.length - 1] = top;
-  return picks;
 }
 
 function disruptionFor(
@@ -267,6 +185,7 @@ function judge(
   trustCurve: TrustCurvePoint[],
   scenarioBeats: ScenarioBeat[],
   counterMoves: string[],
+  neuralTelemetry: SurvivalReport["neural"],
 ): SurvivalReport {
   const layers: PressureLayer[] = [
     "traffic",
@@ -386,12 +305,14 @@ function judge(
   const cast = buildCast(events, minds);
   const fidelity = +Math.min(
     1,
-    0.35 +
-      Math.min(0.25, events.filter((e) => e.kind === "scenario").length * 0.05) +
-      Math.min(0.2, (trustCurve.length / 20) * 0.2) +
-      Math.min(0.15, cast.length * 0.025) +
+    0.32 +
+      Math.min(0.22, events.filter((e) => e.kind === "scenario").length * 0.05) +
+      Math.min(0.18, (trustCurve.length / 24) * 0.18) +
+      Math.min(0.12, cast.length * 0.02) +
       (counterMoves.length ? 0.05 : 0) +
-      hypothesis.coverage * 0.1,
+      hypothesis.coverage * 0.1 +
+      (neuralTelemetry ? 0.08 : 0) +
+      Math.min(0.06, (neuralTelemetry?.decisions ?? 0) / 80),
   ).toFixed(3);
 
   return {
@@ -402,9 +323,9 @@ function judge(
     agentActions: allMoves.slice(0, agentActions.length + 4),
     verdict: survived
       ? trustRecovered
-        ? "Subjective town held. Minds' utilities stayed shippable — canary + kill-switch."
+        ? "Subjective town held. Mind-net utilities stayed shippable — canary + kill-switch."
         : "Town survived outage but trust did not recover in-window — extend canary."
-      : "Subjective town collapsed the change. Buyer/actor utilities went hostile.",
+      : "Subjective town collapsed. Mind-net + prospect utilities went hostile.",
     recommendation: survived
       ? trustRecovered
         ? "Promote behind a 5% canary. Keep dual-write one billing cycle. Watch trust + churn-intent pulse."
@@ -429,6 +350,7 @@ function judge(
     hypothesis,
     cast,
     fidelity,
+    neural: neuralTelemetry,
   };
 }
 
@@ -443,9 +365,12 @@ export function simulateRehearsal(
   opts?: { ticks?: number; fingerprint?: RepoFingerprint | null },
 ): RehearsalRun {
   const fp = opts?.fingerprint ?? null;
-  const ticks = opts?.ticks ?? 16 + plan.intensity * 3;
+  // Deeper arc at higher intensity — more ticks = denser policy pressure
+  const ticks = opts?.ticks ?? 20 + plan.intensity * 4;
   const rng = createPrng(town.seed ^ hashString(plan.id) ^ 0x53454e53);
-  const minds = hydrateMinds(town.users, town.actors, town.seed);
+  const maxBuyers = Math.min(town.users.length, 90 + plan.intensity * 12);
+  const minds = hydrateMinds(town.users, town.actors, town.seed, { maxBuyers });
+  const beliefs = new Map(minds.map((m) => [m.id, beliefPrior(m)]));
   const events: PressureEvent[] = [];
   const snapshots: WorldSnapshot[] = [];
   const liveLog: string[] = [];
@@ -458,11 +383,36 @@ export function simulateRehearsal(
   let districts: District[] = town.districts.map((d) => ({ ...d }));
   let tickets = [...town.tickets];
 
-  const agentActions = selectAgentMoves(plan.kind, fp, rng);
+  let world = cloneWorld(town.world);
+  const stats0 = cohortStats(minds);
+  world.meanTrust = +stats0.meanTrust.toFixed(3);
+  world.meanAnger = +stats0.meanAnger.toFixed(3);
+  world.churnIntent = stats0.churnReady;
+
+  const opening = planAgentMoves(
+    { kind: plan.kind, intensity: plan.intensity, world, fp, phase: "prepare" },
+    rng,
+    5 + Math.floor(plan.intensity / 2),
+  );
+  // Prefer high lookahead-value moves when tied
+  opening.moves.sort(
+    (a, b) =>
+      lookaheadValue(b, { kind: plan.kind, intensity: plan.intensity, world, fp }) -
+      lookaheadValue(a, { kind: plan.kind, intensity: plan.intensity, world, fp }),
+  );
+  const agentActions = opening.moves;
   let liveMitigations = [...agentActions];
+  let replanCount = 0;
+
+  const entropyAcc: number[] = [];
+  const gapAcc: number[] = [];
+  const featureVotes = new Map<string, number>();
 
   liveLog.push(`Town ${town.name} online · seed ${town.seed}`);
-  liveLog.push(`Hydrated ${minds.length} subjective minds (prospect theory + affect + memory)`);
+  liveLog.push(
+    `Hydrated ${minds.length} minds · ${MIND_NET_VERSION} (α=${MIND_ALPHA}) + prospect theory + affect + memory`,
+  );
+  liveLog.push(`Agent policy ${AGENT_NET_VERSION} · planScore ${opening.planScore}`);
   if (fp) {
     liveLog.push(
       `Repo fingerprint: ${fp.filesSampled} files · billing=${fp.hasBilling} auth=${fp.hasAuth} migrations=${fp.hasMigrations}`,
@@ -471,15 +421,10 @@ export function simulateRehearsal(
   liveLog.push(`Agent “${plan.agentName}” enters rehearsal: ${plan.title}`);
   liveLog.push(`Hypothesis: ${plan.hypothesis}`);
   liveLog.push(`Phases: prepare → canary → cutover → stress → recovery (${ticks} ticks)`);
-  for (const a of agentActions.slice(0, 4)) {
-    liveLog.push(`Agent move → ${a}`);
+  for (const s of opening.scores.slice(0, 5)) {
+    liveLog.push(`Agent net → ${s.move} (q=${s.score})`);
   }
 
-  let world = cloneWorld(town.world);
-  const stats0 = cohortStats(minds);
-  world.meanTrust = +stats0.meanTrust.toFixed(3);
-  world.meanAnger = +stats0.meanAnger.toFixed(3);
-  world.churnIntent = stats0.churnReady;
   snapshots.push(cloneWorld(world));
 
   let lastPhase: SimulationPhase | null = null;
@@ -490,6 +435,7 @@ export function simulateRehearsal(
     safety?: number;
     control?: number;
   } = {};
+  let prevTrust = stats0.meanTrust;
 
   for (let t = 1; t <= ticks; t++) {
     const phase = phaseForTick(t, ticks);
@@ -506,7 +452,6 @@ export function simulateRehearsal(
       const beat = scenarioBeat(phase, plan.kind, fp, rng, seenBeats);
       if (beat) {
         activeBoost = beat.boost ?? {};
-        // Intensity scales beat pressure
         const scale = 0.75 + plan.intensity * 0.08;
         activeBoost = Object.fromEntries(
           Object.entries(activeBoost).map(([k, v]) => [k, (v ?? 0) * scale]),
@@ -541,6 +486,19 @@ export function simulateRehearsal(
       } else {
         activeBoost = {};
       }
+
+      // Phase-entry replan via agent net
+      const phaseReplan = replanAgentMove(
+        { kind: plan.kind, intensity: plan.intensity, world, fp, phase },
+        liveMitigations,
+      );
+      if (phaseReplan && phaseReplan.score > 0.15) {
+        liveMitigations.push(phaseReplan.move);
+        counterMoves.push(phaseReplan.move);
+        replanCount++;
+        for (const m of minds) applyMitigationToMind(m, [phaseReplan.move]);
+        liveLog.push(`t${t} · agent-net replan → ${phaseReplan.move} (${phaseReplan.reason})`);
+      }
     }
 
     const baseDisruption = disruptionFor(plan.kind, plan.intensity, world, fp);
@@ -569,7 +527,27 @@ export function simulateRehearsal(
       liveLog.push(`t${t} · agent mitigates → ${move} (minds update trust/anxiety)`);
     }
 
-    // Auto kill-switch if outage breaches error budget mid-run
+    // Crisis replan: trust crash or outage spike
+    const trustNow = world.meanTrust ?? prevTrust;
+    if (
+      (prevTrust - trustNow >= 0.05 || world.outagePercent >= 11) &&
+      t % 2 === 0
+    ) {
+      const crisis = replanAgentMove(
+        { kind: plan.kind, intensity: plan.intensity, world, fp, phase },
+        liveMitigations,
+      );
+      if (crisis) {
+        liveMitigations.push(crisis.move);
+        counterMoves.push(crisis.move);
+        replanCount++;
+        for (const m of minds) applyMitigationToMind(m, [crisis.move]);
+        world.outagePercent = Math.max(0, +(world.outagePercent - 1.5).toFixed(1));
+        liveLog.push(`t${t} · ⚡ crisis replan → ${crisis.move} (${crisis.reason})`);
+      }
+    }
+    prevTrust = trustNow;
+
     if (world.outagePercent >= 14 && !liveMitigations.some((m) => /kill-switch/i.test(m))) {
       const ks = "Emergency kill-switch — adapter rolled back";
       liveMitigations.push(ks);
@@ -590,7 +568,10 @@ export function simulateRehearsal(
     }
 
     const actorCount =
-      1 + Math.floor(plan.intensity / 2) + (phase === "stress" ? 1 : 0) + (phase === "cutover" ? 1 : 0);
+      2 +
+      Math.floor(plan.intensity / 2) +
+      (phase === "stress" ? 2 : 0) +
+      (phase === "cutover" ? 1 : 0);
     const actorsThisTick = sampleActorsForTick(minds, actorCount, rng);
     let tickWorld = world;
 
@@ -611,6 +592,23 @@ export function simulateRehearsal(
 
       const decision = decide(mind, optionsFor(mind, personalStim), personalStim, rng);
       recordEpisodicMemory(mind, decision, t);
+
+      if (decision.neural) {
+        entropyAcc.push(decision.neural.entropy);
+        gapAcc.push(Math.abs(decision.neural.neuralLogit - decision.neural.prospectEu));
+        for (const f of decision.neural.topFeatures) {
+          featureVotes.set(f.feature, (featureVotes.get(f.feature) ?? 0) + Math.abs(f.weight));
+        }
+      }
+
+      // Belief update — minds track expected survival
+      const bel = beliefs.get(mind.id) ?? beliefPrior(mind);
+      const survivedTick = !["churn", "demand_rollback", "block_close"].includes(decision.optionId);
+      beliefs.set(
+        mind.id,
+        updateBelief(bel, mind.affect.trust, survivedTick, 0.16 + plan.intensity * 0.02),
+      );
+
       const dialogue = negotiate(mind, decision, plan.agentName, liveMitigations, rng, { phase });
       allDialogue.push(...dialogue);
 
@@ -633,10 +631,9 @@ export function simulateRehearsal(
         liveLog.push(`     ↳ social contagion · ${contagion} minds in ${mind.segment ?? mind.role} cohort`);
       }
 
-      // Adaptive agent counter on hostile utilities
       if (decision.utility > 0.28 || decision.magnitude > 0.45) {
         const counter = agentCounterMove(decision, plan.agentName, liveMitigations, plan.kind, tickWorld);
-        if (counter && rng() < 0.72) {
+        if (counter && rng() < 0.75) {
           liveMitigations.push(counter.move);
           counterMoves.push(counter.move);
           applyCounterToMinds(minds, decision, counter.move);
@@ -677,6 +674,7 @@ export function simulateRehearsal(
           runnerUp: decision.runnerUp,
           rationale: decision.rationale,
           affectAfter: decision.affectAfter,
+          neural: decision.neural,
         },
         dialogue,
       };
@@ -684,7 +682,7 @@ export function simulateRehearsal(
       liveLog.push(
         `t${t} · [${phaseLabel(phase)}] ${decision.mindName} → ${decision.label} (u=${decision.utility})`,
       );
-      liveLog.push(`     ${truncate(decision.rationale, 160)}`);
+      liveLog.push(`     ${truncate(decision.rationale, 180)}`);
       for (const turn of dialogue) {
         const tag = turn.speaker === "agent" ? "agent" : "mind";
         liveLog.push(`     [${tag}] ${turn.name}: ${truncate(turn.text, 120)}`);
@@ -713,10 +711,53 @@ export function simulateRehearsal(
     });
   }
 
-  const report = judge(plan, town, events, world, agentActions, minds, trustCurve, scenarioBeatsLog, counterMoves);
+  const beliefVals = [...beliefs.values()];
+  const meanExpectedTrust =
+    beliefVals.reduce((s, b) => s + b.expectedTrust, 0) / (beliefVals.length || 1);
+  const meanPSurvive =
+    beliefVals.reduce((s, b) => s + b.pSurvive, 0) / (beliefVals.length || 1);
+  const topFeatures = [...featureVotes.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([feature, weight]) => ({ feature, weight: +weight.toFixed(4) }));
+
+  const neuralTelemetry: SurvivalReport["neural"] = {
+    mindPolicy: MIND_NET_VERSION,
+    agentPolicy: AGENT_NET_VERSION,
+    alpha: MIND_ALPHA,
+    decisions: entropyAcc.length,
+    meanPolicyEntropy: +(
+      entropyAcc.reduce((a, b) => a + b, 0) / (entropyAcc.length || 1)
+    ).toFixed(4),
+    meanProspectGap: +(gapAcc.reduce((a, b) => a + b, 0) / (gapAcc.length || 1)).toFixed(4),
+    topFeatures,
+    agentPlanScore: opening.planScore,
+    agentMovesRanked: opening.scores,
+    replans: replanCount,
+    beliefFinal: {
+      meanExpectedTrust: +meanExpectedTrust.toFixed(3),
+      meanPSurvive: +meanPSurvive.toFixed(3),
+    },
+  };
+
+  const report = judge(
+    plan,
+    town,
+    events,
+    world,
+    agentActions,
+    minds,
+    trustCurve,
+    scenarioBeatsLog,
+    counterMoves,
+    neuralTelemetry,
+  );
   liveLog.push(report.survived ? "SURVIVED — subjective town held." : "COLLAPSED — minds turned hostile.");
   liveLog.push(
     `Survivability ${(report.overall * 100).toFixed(1)}% · trust ${report.subjective?.meanTrust} · churn-ready ${report.subjective?.churnReady}`,
+  );
+  liveLog.push(
+    `Neural · decisions ${neuralTelemetry.decisions} · H̄=${neuralTelemetry.meanPolicyEntropy} · belief p(survive)=${neuralTelemetry.beliefFinal.meanPSurvive} · replans ${replanCount}`,
   );
   if (report.nearMiss) liveLog.push(`※ ${report.nearMiss}`);
   if (report.hypothesis) {
