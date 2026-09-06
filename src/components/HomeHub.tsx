@@ -65,6 +65,11 @@ export function HomeHub() {
     setTimeout(() => {
       setEntered(true);
       setFade(false);
+      try {
+        localStorage.setItem("forktown-hub-entered", "1");
+      } catch {
+        /* ignore */
+      }
     }, 420);
   };
 
