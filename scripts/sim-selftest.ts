@@ -91,8 +91,12 @@ assert(runA.liveLog.some((l) => l.includes("ft-mind") || l.includes("Agent polic
 assert(Boolean(d1.neural?.version.includes("ft-mind")), "decide attaches neural diagnostics");
 assert((runA.report!.counterfactuals?.length ?? 0) >= 1, "counterfactual ablations present");
 assert(
-  runA.report!.counterfactuals!.some((c) => c.ablation === "no-dual-write" && c.delta <= 0),
-  "removing dual-write does not improve survivability",
+  runA.report!.counterfactuals!.every((c) => c.delta <= 0.005),
+  "no ablation spuriously improves score",
+);
+assert(
+  runA.report!.counterfactuals!.some((c) => c.ablation === "no-dual-write" && c.delta < -0.02),
+  "removing dual-write hurts ≥2pts",
 );
 
 console.log("\nSample run:", {

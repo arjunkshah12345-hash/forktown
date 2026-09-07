@@ -237,10 +237,12 @@ export function planAgentMoves(
     const cand = scored.find((s) => re.test(s.move.toLowerCase()));
     if (cand) picks[picks.length - 1] = cand;
   };
-  if (ctx.intensity >= 3) {
+  if (ctx.intensity >= 2) {
     ensure(/kill-switch|rollback/);
     if (ctx.kind === "billing" || ctx.kind === "database") ensure(/dual-write/);
-    if (ctx.fp?.hasStripe || ctx.fp?.hasWebhooks) ensure(/idempotency/);
+    if (ctx.fp?.hasStripe || ctx.fp?.hasWebhooks || ctx.kind === "billing" || ctx.kind === "auth") {
+      ensure(/idempotency/);
+    }
     ensure(/feature-flag|cohort|canary/);
   }
 

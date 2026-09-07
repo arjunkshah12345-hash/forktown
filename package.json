@@ -12,7 +12,8 @@
     "lint": "eslint",
     "forktown": "node ./bin/forktown.mjs",
     "test:sim": "pnpm exec tsx scripts/sim-selftest.ts",
-    "train:neural": "pnpm exec tsx scripts/train-neural.ts"
+    "train:neural": "pnpm exec tsx scripts/train-neural.ts",
+    "calibrate": "pnpm exec tsx scripts/calibrate-ladder.ts"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",

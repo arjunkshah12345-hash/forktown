@@ -37,9 +37,10 @@ import {
   replanAgentMove,
   updateBelief,
 } from "./neural";
-import { applyMitigationShield, mitigationCoverage, outageCap } from "./neural/mitigation-physics";
+import { applyMitigationShield, mitigationCoverage, missingMitigationPenalty, outageCap, recoveryHealStrength } from "./neural/mitigation-physics";
 import { WEIGHTS_V2 } from "./neural/weights-v2";
 import { createPrng, int, pick } from "./prng";
+import { clamp01 } from "./mind-utils";
 import { phaseForTick, phaseLabel, scenarioBeat, type SimulationPhase } from "./scenarios";
 import type {
   DialogueTurn,
@@ -222,30 +223,31 @@ function judge(
   const outagePenalty = Math.min(0.28, final.outagePercent / 100);
   const coverageBonus = cov * 0.14;
   const coverageGapPenalty = (1 - cov) * 0.16;
+  const missingPen = missingMitigationPenalty(plan.kind, allMoves);
 
   const dimensions = layers.map((layer) => {
     const hit = layerHits[layer];
     const base = 0.92 - hit * 0.085 - intensityPenalty;
     const rescue = skill * 0.18 + trustBonus + coverageBonus;
-    let score = base + rescue - angerPenalty * 0.35 - coverageGapPenalty * 0.5;
+    let score = base + rescue - angerPenalty * 0.35 - coverageGapPenalty * 0.5 - missingPen * 0.35;
     if (layer === "finance") {
       score -= churnPenalty;
       if ((plan.kind === "billing" || plan.kind === "database") && !/dual-write/.test(moveBlob)) {
-        score -= 0.14;
+        score -= 0.16;
       }
     }
     if (layer === "legacy") {
       score -= Math.min(0.18, town.world.legacyContracts / 110);
-      if (!/dual-write|legacy|preserve/.test(moveBlob)) score -= 0.08;
+      if (!/dual-write|legacy|preserve/.test(moveBlob)) score -= 0.1;
     }
     if (layer === "support") score -= stats.meanAnger * 0.12;
     if (layer === "sre") {
-      if (/kill-switch|rollback/.test(moveBlob)) score += 0.08;
-      else score -= 0.1;
+      if (/kill-switch|rollback/.test(moveBlob)) score += 0.1;
+      else score -= 0.12;
     }
     if (layer === "security") {
-      if (/idempotency/.test(moveBlob)) score += 0.08;
-      else if (plan.kind === "billing" || plan.kind === "api_version") score -= 0.12;
+      if (/idempotency/.test(moveBlob)) score += 0.1;
+      else if (plan.kind === "billing" || plan.kind === "api_version" || plan.kind === "auth") score -= 0.15;
     }
     score = Math.max(0.05, Math.min(0.99, score));
     const note =
@@ -262,7 +264,8 @@ function judge(
     outagePenalty * 0.3 -
     churnPenalty * 0.35 +
     coverageBonus * 0.35 -
-    coverageGapPenalty;
+    coverageGapPenalty -
+    missingPen;
   const overallClamped = +Math.max(0, Math.min(1, overall)).toFixed(3);
 
   const cascadingFailures: string[] = [];
@@ -730,6 +733,24 @@ export function simulateRehearsal(
       for (const turn of dialogue) {
         const tag = turn.speaker === "agent" ? "agent" : "mind";
         liveLog.push(`     [${tag}] ${turn.name}: ${truncate(turn.text, 120)}`);
+      }
+    }
+
+    // Recovery heal — good mitigations restore trust; missing ones leave scars
+    if (phase === "recovery") {
+      const heal = recoveryHealStrength(liveMitigations);
+      if (heal > 0) {
+        for (const m of minds) {
+          m.affect.trust = clamp01(m.affect.trust + heal);
+          m.affect.anger = clamp01(m.affect.anger - heal * 0.7);
+          m.affect.anxiety = clamp01(m.affect.anxiety - heal * 0.6);
+          m.affect.arousal = clamp01(m.affect.arousal - heal * 0.5);
+        }
+      } else {
+        for (const m of minds) {
+          m.affect.anger = clamp01(m.affect.anger + 0.01);
+          m.affect.trust = clamp01(m.affect.trust - 0.008);
+        }
       }
     }
 

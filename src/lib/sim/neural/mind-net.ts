@@ -19,7 +19,7 @@ import {
 import { WEIGHTS_V2 } from "./weights-v2";
 
 export const MIND_NET_VERSION = "ft-mind-v2";
-export const MIND_ALPHA = 0.48;
+export const MIND_ALPHA = 0.45;
 
 const STATE_DIM = 40;
 const OPTION_DIM = 12;

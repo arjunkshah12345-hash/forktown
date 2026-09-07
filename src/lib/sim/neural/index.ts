@@ -16,8 +16,10 @@ export {
 export {
   applyMitigationShield,
   mitigationCoverage,
+  missingMitigationPenalty,
   outageCap,
   profileMitigations,
+  recoveryHealStrength,
 } from "./mitigation-physics";
 export type { NeuralScore } from "./mind-net";
 export type { AgentPlanResult, AgentPlanContext } from "./agent-net";
