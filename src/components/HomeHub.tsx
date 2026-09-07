@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { PixelTitleCanvas } from "@/components/retro/PixelTitleCanvas";
 import { usePixelAudio } from "@/components/retro/usePixelAudio";
+import { withBase } from "@/lib/paths";
 
 const TIPS = [
-  "Subjective minds remember every broken coupon.",
-  "Agents negotiate — they don't roll dice.",
-  "Rehearse Invoice Barn before you ship Friday.",
-  "Plant a real GitHub repo — the town is generated from the tree.",
+  "ft-mind-v2 + ft-agent-v2 — trained policies, not dice rolls.",
+  "Ablate dual-write in the report — watch survivability fall.",
+  "Press R in town to run the live rehearsal engine.",
+  "Plant a real GitHub repo — the town grows from the file tree.",
   "Press M for chiptune while you explore.",
 ];
 
@@ -19,6 +20,7 @@ export function HomeHub() {
   const [entered, setEntered] = useState(false);
   const [fade, setFade] = useState(false);
   const [music, setMusic] = useState(false);
+  const [warm, setWarm] = useState(false);
   const { blip } = usePixelAudio(music);
 
   useEffect(() => {
@@ -28,6 +30,22 @@ export function HomeHub() {
     } catch {
       /* ignore */
     }
+  }, []);
+
+  // Warm the starter town so Enter is instant on serverless cold starts
+  useEffect(() => {
+    let cancelled = false;
+    void fetch(withBase("/api/towns/starter"), { method: "POST" })
+      .then((r) => r.ok)
+      .then((ok) => {
+        if (!cancelled && ok) setWarm(true);
+      })
+      .catch(() => {
+        /* ignore */
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -92,7 +110,7 @@ export function HomeHub() {
         </div>
 
         <div className="pixel-title-content">
-          <p className="pixel-title-eyebrow">★ REAL SIMS · REAL REPOS</p>
+          <p className="pixel-title-eyebrow">★ LIVE ENGINE · TRAINED POLICIES</p>
           <h1 className="pixel-title-logo">
             FORK
             <span className="pixel-title-logo-accent">TOWN</span>
@@ -102,7 +120,7 @@ export function HomeHub() {
           </p>
 
           <div className="pixel-title-features">
-            {["live engine", "buyer minds", "war room", "github towns"].map((t) => (
+            {["ft-mind-v2", "ft-agent-v2", "war room", "counterfactuals"].map((t) => (
               <span key={t} className="pixel-title-chip">
                 {t}
               </span>
@@ -116,7 +134,9 @@ export function HomeHub() {
           <p className={`pixel-title-cta ${blink ? "on" : ""}`}>▶ PRESS ANY KEY · CLICK TO ENTER</p>
         </div>
 
-        <p className="pixel-title-foot">starter town · live runs · v1</p>
+        <p className="pixel-title-foot">
+          starter town · calibrated ladder · {warm ? "town warm" : "warming…"}
+        </p>
       </div>
     );
   }
@@ -152,15 +172,15 @@ export function HomeHub() {
       <main className="pixel-hub-main">
         <div className="pixel-hub-dialogue">
           <p className="font-pixel text-[0.42rem] uppercase tracking-widest text-[var(--px-gold)]">
-            Town square
+            Town square · engine ready
           </p>
           <h1 className="pixel-title-logo pixel-hub-logo">
             FORK
             <span className="pixel-title-logo-accent">TOWN</span>
           </h1>
           <p className="pixel-hub-copy">
-            Enter a real simulated town, or plant your GitHub repo and grow one from the actual file
-            tree. Rehearsals run the engine — war room, minds, trust curves, the works.
+            Walk the starter town and press R — trained mind + agent nets rehearse the cutover. Open
+            the report for counterfactual ablations that prove which mitigations were load-bearing.
           </p>
 
           <div className="pixel-hub-actions">
@@ -185,20 +205,20 @@ export function HomeHub() {
           {[
             {
               n: "01",
-              t: "Walk Acme Billing",
-              d: "Real districts + subjective minds. Hit Rehearse to run the sim.",
+              t: "Rehearse Acme Billing",
+              d: "Press R. Watch the war room. Read neural + counterfactuals.",
               href: "/towns/acme-billing-town",
             },
             {
               n: "02",
               t: "Plant a GitHub repo",
-              d: "We fingerprint billing/auth/migrations and found a town from the tree.",
+              d: "Fingerprint billing/auth/migrations — found a town from the tree.",
               href: "/connect",
             },
             {
               n: "03",
-              t: "Open the war room",
-              d: "Scrub ticks, watch negotiations, read the survival verdict.",
+              t: "Ablate a mitigation",
+              d: "Survival report shows Δ when dual-write or kill-switch is removed.",
               href: "/towns/acme-billing-town",
             },
           ].map((q) => (
